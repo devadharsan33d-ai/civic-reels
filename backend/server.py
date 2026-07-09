@@ -191,13 +191,72 @@ async def search_users(q: str = Query(""), authorization: Optional[str] = Header
 
 @api_router.get("/users/{user_id}")
 async def get_user(user_id: str, authorization: Optional[str] = Header(None)):
-    await get_current_user(authorization)
+    current = await get_current_user(authorization)
     user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "email": 0})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     post_count = await db.posts.count_documents({"author_id": user_id})
+    follower_count = await db.follows.count_documents({"followee_id": user_id})
+    following_count = await db.follows.count_documents({"follower_id": user_id})
+    is_following = False
+    if current["user_id"] != user_id:
+        is_following = bool(
+            await db.follows.find_one(
+                {"follower_id": current["user_id"], "followee_id": user_id}, {"_id": 0}
+            )
+        )
     user["post_count"] = post_count
+    user["follower_count"] = follower_count
+    user["following_count"] = following_count
+    user["is_following"] = is_following
+    user["is_self"] = current["user_id"] == user_id
     return user
+
+@api_router.post("/users/{user_id}/follow")
+async def follow_user(user_id: str, authorization: Optional[str] = Header(None)):
+    current = await get_current_user(authorization)
+    if current["user_id"] == user_id:
+        raise HTTPException(status_code=400, detail="Cannot follow yourself")
+    target = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    existing = await db.follows.find_one(
+        {"follower_id": current["user_id"], "followee_id": user_id}, {"_id": 0}
+    )
+    if existing:
+        await db.follows.delete_one({"follower_id": current["user_id"], "followee_id": user_id})
+        is_following = False
+    else:
+        await db.follows.insert_one({
+            "follower_id": current["user_id"],
+            "followee_id": user_id,
+            "created_at": now_utc(),
+        })
+        is_following = True
+    follower_count = await db.follows.count_documents({"followee_id": user_id})
+    return {"is_following": is_following, "follower_count": follower_count}
+
+@api_router.get("/users/{user_id}/followers")
+async def list_followers(user_id: str, authorization: Optional[str] = Header(None)):
+    await get_current_user(authorization)
+    cursor = db.follows.find({"followee_id": user_id}, {"_id": 0}).sort("created_at", -1)
+    rows = await cursor.to_list(500)
+    ids = [r["follower_id"] for r in rows]
+    users = await db.users.find(
+        {"user_id": {"$in": ids}}, {"_id": 0, "email": 0}
+    ).to_list(500)
+    return users
+
+@api_router.get("/users/{user_id}/following")
+async def list_following(user_id: str, authorization: Optional[str] = Header(None)):
+    await get_current_user(authorization)
+    cursor = db.follows.find({"follower_id": user_id}, {"_id": 0}).sort("created_at", -1)
+    rows = await cursor.to_list(500)
+    ids = [r["followee_id"] for r in rows]
+    users = await db.users.find(
+        {"user_id": {"$in": ids}}, {"_id": 0, "email": 0}
+    ).to_list(500)
+    return users
 
 # ---------- Posts ----------
 @api_router.post("/posts")
@@ -350,6 +409,9 @@ async def startup():
     await db.posts.create_index("created_at")
     await db.likes.create_index([("post_id", 1), ("user_id", 1)], unique=True)
     await db.comments.create_index("post_id")
+    await db.follows.create_index([("follower_id", 1), ("followee_id", 1)], unique=True)
+    await db.follows.create_index("followee_id")
+    await db.follows.create_index("follower_id")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

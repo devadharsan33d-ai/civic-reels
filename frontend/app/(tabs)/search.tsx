@@ -6,6 +6,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { api } from "@/src/utils/api";
 import { BRAND_GRADIENT, categoryGradient, COLORS, RADIUS, TYPE } from "@/src/theme";
@@ -23,6 +24,7 @@ type Category = { key: string; label: string; icon: any };
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [mode, setMode] = useState<Mode>("problems");
   const [q, setQ] = useState("");
   const [category, setCategory] = useState<string>("");
@@ -141,7 +143,11 @@ export default function SearchScreen() {
           ListEmptyComponent={<EmptyState icon="people-outline" text={q ? "No people found." : "Search neighbours by name or @handle."} />}
           renderItem={({ item, index }) => (
             <Animated.View entering={FadeInDown.duration(300).delay(index * 30)}>
-              <Pressable style={styles.userRow} testID={`user-row-${item.user_id}`}>
+              <Pressable
+                style={styles.userRow}
+                onPress={() => router.push(`/user/${item.user_id}`)}
+                testID={`user-row-${item.user_id}`}
+              >
                 {item.picture ? (
                   <Image source={{ uri: item.picture }} style={styles.userAvatar} />
                 ) : (

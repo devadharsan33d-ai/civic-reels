@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  View, Text, StyleSheet, FlatList, Pressable, Dimensions, ScrollView, TextInput,
+  View, Text, StyleSheet, FlatList, Pressable, Dimensions, ScrollView,
   Modal, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { Image } from "expo-image";
@@ -15,24 +15,41 @@ import { useToast } from "@/src/components/Toast";
 import { BRAND_GRADIENT, categoryGradient, COLORS, RADIUS, TYPE } from "@/src/theme";
 import FloatingInput from "@/src/components/FloatingInput";
 import GradientButton from "@/src/components/GradientButton";
+import FollowersModal from "@/src/components/FollowersModal";
 
 const { width } = Dimensions.get("window");
 const GRID = (width - 4) / 3;
 
 type PostRow = { post_id: string; image_base64: string; category: string; like_count: number };
 
+type ProfileStats = {
+  post_count: number;
+  follower_count: number;
+  following_count: number;
+};
+
 export default function ProfileScreen() {
   const { user, logout, refresh } = useAuth();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [posts, setPosts] = useState<PostRow[]>([]);
+  const [stats, setStats] = useState<ProfileStats>({ post_count: 0, follower_count: 0, following_count: 0 });
   const [editing, setEditing] = useState(false);
+  const [followersModal, setFollowersModal] = useState<null | "followers" | "following">(null);
 
   const load = useCallback(async () => {
     if (!user) return;
     try {
-      const list = await api<PostRow[]>(`/posts/user/${user.user_id}`);
+      const [list, me] = await Promise.all([
+        api<PostRow[]>(`/posts/user/${user.user_id}`),
+        api<ProfileStats & { user_id: string }>(`/users/${user.user_id}`),
+      ]);
       setPosts(list);
+      setStats({
+        post_count: me.post_count || 0,
+        follower_count: me.follower_count || 0,
+        following_count: me.following_count || 0,
+      });
     } catch {}
   }, [user]);
 
@@ -53,9 +70,11 @@ export default function ProfileScreen() {
         ListHeaderComponent={
           <ProfileHeader
             user={user}
-            postCount={posts.length}
+            stats={stats}
             onEdit={() => setEditing(true)}
             onLogout={logout}
+            onOpenFollowers={() => setFollowersModal("followers")}
+            onOpenFollowing={() => setFollowersModal("following")}
           />
         }
         ListEmptyComponent={
@@ -114,13 +133,28 @@ export default function ProfileScreen() {
           onSaved={async () => { setEditing(false); await refresh(); await load(); }}
         />
       )}
+
+      {followersModal && (
+        <FollowersModal
+          userId={user.user_id}
+          mode={followersModal}
+          onClose={() => setFollowersModal(null)}
+        />
+      )}
     </View>
   );
 }
 
 function ProfileHeader({
-  user, postCount, onEdit, onLogout,
-}: { user: any; postCount: number; onEdit: () => void; onLogout: () => void }) {
+  user, stats, onEdit, onLogout, onOpenFollowers, onOpenFollowing,
+}: {
+  user: any;
+  stats: ProfileStats;
+  onEdit: () => void;
+  onLogout: () => void;
+  onOpenFollowers: () => void;
+  onOpenFollowing: () => void;
+}) {
   return (
     <View>
       <View style={styles.cover}>
@@ -176,19 +210,19 @@ function ProfileHeader({
 
         <View style={styles.statsCard}>
           <View style={styles.statItem}>
-            <Text style={styles.statNum}>{postCount}</Text>
+            <Text style={styles.statNum}>{stats.post_count}</Text>
             <Text style={styles.statLabel}>Reports</Text>
           </View>
           <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNum}>—</Text>
+          <Pressable style={styles.statItem} onPress={onOpenFollowers} testID="my-followers">
+            <Text style={styles.statNum}>{stats.follower_count}</Text>
             <Text style={styles.statLabel}>Followers</Text>
-          </View>
+          </Pressable>
           <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNum}>—</Text>
-            <Text style={styles.statLabel}>Impact</Text>
-          </View>
+          <Pressable style={styles.statItem} onPress={onOpenFollowing} testID="my-following">
+            <Text style={styles.statNum}>{stats.following_count}</Text>
+            <Text style={styles.statLabel}>Following</Text>
+          </Pressable>
         </View>
 
         <Pressable style={styles.editBtn} onPress={onEdit} testID="edit-profile-btn">

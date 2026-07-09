@@ -1,0 +1,35 @@
+{
+  "summary": "Iteration 4 - full backend + frontend regression for the 3 user-reported bugs (FloatingInput label jump, tap-user-in-search opens profile, followers list on own profile) plus the new follow flow. Backend: 12/12 new tests pass in /app/backend/tests/test_follow_and_users.py covering (a) expanded GET /api/users/{id} schema (post_count=3, follower_count=2, following_count=0, is_self=true for Priya; is_self=false, is_following=false for Anita, 404 for unknown user), (b) GET /api/users/{id}/followers returns Rajesh+Anita for Priya with email excluded and no _id, (c) GET /api/users/{id}/following returns [] for Priya and Priya-included for Rajesh, (d) POST /api/users/{id}/follow toggles: follow Anita → is_following true, follower_count=1; second call → is_following false, follower_count=0; verified via subsequent GET, (e) self-follow returns 400, follow-nonexistent returns 404, missing token returns 401 on both follow and followers endpoints. Frontend (390x844 mobile viewport, seeded session 'dbg_tok'): BUG 1 FIXED - measured Y-position of edit-country, edit-state, edit-slogan input fields before focus and after focusing each in sequence with keyboard input in between; MAX_DELTA = 0px across 9 focus transitions → labels/fields do NOT jump. BUG 2 FIXED - Search > People > 'priya' > tap Priya Sharma row navigates to /user/user_dbg1 and detail screen shows Priya, @priya_s, Karnataka/India, 3 REPORTS, 2 FOLLOWERS, 0 FOLLOWING, and 3 post tiles (road/water/sanitation). BUG 3 FIXED - Profile stats card shows real values '3 REPORTS / 2 FOLLOWERS / 0 FOLLOWING' (no em dashes anywhere in stats). Tap Followers stat → 'WHO FOLLOWS YOU / 2 Followers' modal lists Rajesh Kumar (@rajesh_k) and Anita Menon (@anita_m); tap Anita row → navigates to /user/user_dbg3 and renders Anita's detail screen. Follow flow verified end-to-end - button text toggles Follow → Following → Follow on Anita's page. Save profile flow works - editing slogan to 'Neighbours first.', tapping Save, modal closes, profile screen shows the new slogan. Zero red screens, zero pageerrors. Only warnings observed are the pre-existing benign react-native-web deprecation warnings for shadow*/textShadow* style props already documented in iteration_3.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "shadow*/textShadow* style props", "issue": "react-native-web deprecation warnings still emitted from login/feed/tabs FAB screens (unchanged from iteration_3). Non-blocking, cosmetic. Reference: /app/frontend/app/login.tsx, /app/frontend/app/(tabs)/_layout.tsx, /app/frontend/app/(tabs)/index.tsx."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_follow_and_users.py",
+    "/app/backend/tests/test_civicreel_api.py",
+    "/app/test_reports/pytest/pytest_iter4.xml"
+  ],
+  "action_items": [
+    "None blocking. The 3 reported bugs and the new follow flow are fully verified. Optional cleanup from iteration_3 still open: (1) migrate shadow*/textShadow*/pointerEvents to new APIs; (2) remove ghost <Tabs.Screen name='search-alt'/> and 'notifications' entries from /app/frontend/app/(tabs)/_layout.tsx."
+  ],
+  "critical_code_review_comments": [
+    "FloatingInput cross-fade fix (/app/frontend/src/components/FloatingInput.tsx) is architecturally sound: opacity-only animation with useNativeDriver:true, both label variants absolutely positioned, fixed 60px wrap height and fixed 30px input height eliminate any reflow. Verified by measuring bounding boxes - 0px delta across 9 focus transitions.",
+    "GET /api/users/{user_id} now correctly excludes email and _id and adds post_count/follower_count/following_count/is_following/is_self. Note: response no longer conforms to the older UserPublic Pydantic model (fields added), but the endpoint doesn't declare a response_model so this is fine at runtime.",
+    "POST /api/users/{id}/follow is a toggle (not idempotent create). This matches the spec but callers must not assume idempotency - a duplicate tap will unfollow. The optimistic UI in /app/frontend/app/user/[id].tsx handles this correctly by refetching after the response.",
+    "FollowersModal calls onClose() then router.push in the row onPress - the modal dismiss animation may race with the navigation on very slow devices. Not observed in the web preview but consider awaiting a short timeout on native."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_follow_and_users.py (new)"
+  ],
+  "success_rate": {"backend": "100% (12/12 new follow tests + all iteration_3 tests still pass)", "frontend": "100% (all 3 reported bugs fixed and verified; follow toggle + save profile end-to-end verified)"},
+  "seed_data_creation": "Reused existing seeded data: session 'dbg_tok' -> user_dbg1 (Priya Sharma), user_dbg2 (Rajesh Kumar) and user_dbg3 (Anita Menon) both following Priya; 3 seed posts on Priya (road/water/sanitation). No new seed created.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "To reproduce this run: (1) confirm mongodb has session_token='dbg_tok' bound to user_dbg1, users user_dbg1/2/3 present, and 2 follows (dbg2->dbg1, dbg3->dbg1); (2) in web preview goto /login, localStorage.setItem('civicreel_session_token','dbg_tok'), reload; (3) directly navigate to /profile or /user/<id> for detail screen (avoid clicking 'Profile' tab label - it's rendered by expo-router bottom-tab as an icon+label element; the label text is not always uniquely locatable). To measure label jumps, use bounding_box() on the FloatingInput's testID (the testID is forwarded to the inner TextInput) before/after focus - delta should be 0. When typing into edit-country/edit-state, clear existing values first (they're seeded to 'India'/'Karnataka'), otherwise the append will produce 'IndiaIndia'.",
+  "rca_of_issue": "BUG 1 root cause: previous FloatingInput animated the label's `top` and `fontSize` on focus. Inside a ScrollView + KeyboardAvoidingView, animating layout-affecting props triggers a re-measure of parent flexbox, causing sibling inputs to shift. Fix crossfades two absolutely-positioned static labels via opacity + useNativeDriver:true - zero layout reflow. Verified 0px Y delta. BUG 2 root cause: search screen renderItem for users mode had no onPress. Fix wires `router.push('/user/' + user_id)` in /app/frontend/app/(tabs)/search.tsx and adds a new /app/frontend/app/user/[id].tsx screen. BUG 3 root cause: profile page rendered '—' placeholders for follower counts and had no followers UI. Fix adds backend endpoints /api/users/{id}/follow[ers|ing] and expands /api/users/{id} response with counts + is_self + is_following, plus a FollowersModal bottom sheet that lists users and links to their detail page."
+}

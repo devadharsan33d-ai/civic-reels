@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { View, Text, TextInput, StyleSheet, TextInputProps, StyleProp, ViewStyle, Animated, Pressable } from "react-native";
 import { COLORS, RADIUS } from "@/src/theme";
 
@@ -13,47 +13,62 @@ type Props = TextInputProps & {
 };
 
 /**
- * Material-3 style floating label input.
- * When empty & unfocused the label sits inside the field; on focus/value it lifts.
+ * Material-3 floating label input.
+ * Bug-safe implementation: we DO NOT animate layout (top/fontSize) because
+ * that causes a re-flow inside ScrollView + KeyboardAvoidingView, which makes
+ * fields jump between positions when focused on mobile. Instead we render two
+ * absolutely-positioned labels (rest + floating) and cross-fade between them
+ * using opacity (native driver) — zero layout impact.
  */
 export default function FloatingInput({
   label, value, prefix, containerStyle, errorText, multiline, style,
   onFocus, onBlur, rightIcon, onRightPress, testID, ...rest
 }: Props) {
   const [focused, setFocused] = useState(false);
-  const anim = useRef(new Animated.Value(value ? 1 : 0)).current;
-
   const isFloating = focused || Boolean(value);
+  const opacity = useRef(new Animated.Value(isFloating ? 1 : 0)).current;
 
-  React.useEffect(() => {
-    Animated.timing(anim, {
+  useEffect(() => {
+    Animated.timing(opacity, {
       toValue: isFloating ? 1 : 0,
-      duration: 160,
-      useNativeDriver: false,
+      duration: 140,
+      useNativeDriver: true,
     }).start();
-  }, [isFloating, anim]);
+  }, [isFloating, opacity]);
 
-  const labelTop = anim.interpolate({ inputRange: [0, 1], outputRange: [multiline ? 20 : 18, 8] });
-  const labelSize = anim.interpolate({ inputRange: [0, 1], outputRange: [15, 11] });
-  const labelColor = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [COLORS.onBgDim, focused ? COLORS.brand2 : COLORS.onBgMuted],
-  });
+  const restOpacity = opacity.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
+  const floatOpacity = opacity;
+
+  const labelLeft = prefix ? 30 : 16;
+  const focusedColor = focused ? COLORS.brand2 : COLORS.onBgMuted;
 
   return (
     <View style={containerStyle}>
       <View
         style={[
           styles.wrap,
-          multiline && { minHeight: 96, alignItems: "flex-start", paddingTop: 22 },
+          multiline && styles.wrapMultiline,
           focused && styles.wrapFocused,
           errorText ? { borderColor: COLORS.error } : null,
         ]}
       >
+        {/* Rest state label — sits where the input value would appear */}
         <Animated.Text
+          pointerEvents="none"
           style={[
-            styles.label,
-            { top: labelTop, fontSize: labelSize, color: labelColor, left: prefix ? 30 : 16 },
+            styles.labelRest,
+            { left: labelLeft, opacity: restOpacity, color: COLORS.onBgDim },
+            multiline && { top: 22 },
+          ]}
+        >
+          {label}
+        </Animated.Text>
+        {/* Floating state label — sits at the top */}
+        <Animated.Text
+          pointerEvents="none"
+          style={[
+            styles.labelFloat,
+            { left: labelLeft, opacity: floatOpacity, color: focusedColor },
           ]}
         >
           {label}
@@ -71,7 +86,7 @@ export default function FloatingInput({
           multiline={multiline}
           style={[
             styles.input,
-            multiline && { height: 70, textAlignVertical: "top", paddingTop: 4 },
+            multiline && styles.inputMultiline,
             style,
           ]}
         />
@@ -89,7 +104,7 @@ export default function FloatingInput({
 
 const styles = StyleSheet.create({
   wrap: {
-    minHeight: 60,
+    height: 60,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -101,18 +116,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     position: "relative",
   },
+  wrapMultiline: {
+    height: 96,
+    alignItems: "flex-start",
+    paddingTop: 24,
+  },
   wrapFocused: {
     borderColor: COLORS.brand2,
-    backgroundColor: COLORS.surface2,
-    shadowColor: COLORS.brand2,
-    shadowOpacity: 0.28,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 0 },
   },
-  label: {
+  labelRest: {
     position: "absolute",
-    fontWeight: "600",
+    top: 18,
+    fontSize: 15,
+    fontWeight: "500",
     letterSpacing: 0.2,
+  },
+  labelFloat: {
+    position: "absolute",
+    top: 8,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.4,
   },
   prefix: { color: COLORS.onBgMuted, fontSize: 16, marginRight: 4 },
   input: {
@@ -122,6 +146,13 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     padding: 0,
     letterSpacing: 0.1,
+    // Fixed height keeps layout stable so animated labels don't cause reflow.
+    height: 30,
+  },
+  inputMultiline: {
+    height: 60,
+    textAlignVertical: "top",
+    paddingTop: 4,
   },
   right: { marginLeft: 8 },
   err: { color: COLORS.error, fontSize: 12, marginTop: 6, marginLeft: 4, fontWeight: "600" },
