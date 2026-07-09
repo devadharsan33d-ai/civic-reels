@@ -76,19 +76,6 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="search-alt"
-        options={{
-          // hidden — kept only if you route explicitly
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{
           tabBarIcon: ({ focused }) => <TabIcon icon="person-circle" focused={focused} />,
