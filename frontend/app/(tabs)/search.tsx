@@ -105,6 +105,7 @@ export default function SearchScreen() {
         <ActivityIndicator style={{ marginTop: 40 }} color={COLORS.brandSecondary} />
       ) : mode === "users" ? (
         <FlatList
+          key="users-list"
           data={users}
           keyExtractor={(u) => u.user_id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
@@ -128,6 +129,7 @@ export default function SearchScreen() {
         />
       ) : (
         <FlatList
+          key="problems-grid"
           data={posts}
           keyExtractor={(p) => p.post_id}
           numColumns={2}
