@@ -68,7 +68,7 @@ export default function SearchScreen() {
             returnKeyType="search"
           />
           {q.length > 0 && (
-            <Pressable onPress={() => { setQ(""); runSearch(); }} testID="search-clear">
+            <Pressable onPress={() => setQ("")} testID="search-clear">
               <Ionicons name="close-circle" size={18} color="#7A7A7A" />
             </Pressable>
           )}
