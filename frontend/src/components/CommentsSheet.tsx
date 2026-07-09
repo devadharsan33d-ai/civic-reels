@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import {
   View, Text, StyleSheet, Modal, Pressable, TextInput, FlatList,
-  KeyboardAvoidingView, Platform, ActivityIndicator,
+  KeyboardAvoidingView, Platform,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { api, COLORS } from "@/src/utils/api";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { api } from "@/src/utils/api";
+import { BRAND_GRADIENT, COLORS, RADIUS, TYPE } from "@/src/theme";
+import Skeleton from "@/src/components/Skeleton";
 
 type Comment = {
   comment_id: string;
@@ -58,32 +62,55 @@ export default function CommentsSheet({
         <SafeAreaView edges={["bottom"]} style={{ flex: 1 }}>
           <View style={styles.handle} />
           <View style={styles.header}>
-            <Text style={styles.title}>Comments</Text>
-            <Pressable onPress={onClose} testID="comments-close" hitSlop={12}>
-              <Ionicons name="close" size={22} color={COLORS.onSurface} />
+            <View>
+              <Text style={styles.eyebrow}>comments</Text>
+              <Text style={styles.title}>{comments.length} {comments.length === 1 ? "reply" : "replies"}</Text>
+            </View>
+            <Pressable onPress={onClose} testID="comments-close" hitSlop={12} style={styles.closeBtn}>
+              <Ionicons name="close" size={20} color={COLORS.onBg} />
             </Pressable>
           </View>
 
           {loading ? (
-            <ActivityIndicator style={{ marginTop: 30 }} color={COLORS.brandSecondary} />
+            <View style={{ padding: 20, gap: 14 }}>
+              {[1, 2, 3].map((i) => (
+                <View key={i} style={{ flexDirection: "row", gap: 12 }}>
+                  <Skeleton width={36} height={36} radius={18} />
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <Skeleton width="30%" height={12} />
+                    <Skeleton width="80%" height={14} />
+                  </View>
+                </View>
+              ))}
+            </View>
           ) : (
             <FlatList
               data={comments}
               keyExtractor={(c) => c.comment_id}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 16 }}
               ListEmptyComponent={
-                <Text style={styles.empty}>Be the first to comment.</Text>
-              }
-              renderItem={({ item }) => (
-                <View style={styles.commentRow}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarInit}>{item.name?.[0]?.toUpperCase() || "?"}</Text>
+                <View style={styles.emptyBox}>
+                  <View style={styles.emptyIcon}>
+                    <Ionicons name="chatbubbles-outline" size={22} color={COLORS.onBgMuted} />
                   </View>
+                  <Text style={styles.emptyText}>Be the first to comment.</Text>
+                </View>
+              }
+              renderItem={({ item, index }) => (
+                <Animated.View entering={FadeInDown.duration(240).delay(index * 30)} style={styles.commentRow}>
+                  <LinearGradient
+                    colors={BRAND_GRADIENT as unknown as string[]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.avatar}
+                  >
+                    <Text style={styles.avatarInit}>{item.name?.[0]?.toUpperCase() || "?"}</Text>
+                  </LinearGradient>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.cUser}>@{item.username || item.name}</Text>
                     <Text style={styles.cText}>{item.text}</Text>
                   </View>
-                </View>
+                </Animated.View>
               )}
             />
           )}
@@ -95,7 +122,7 @@ export default function CommentsSheet({
                 value={text}
                 onChangeText={setText}
                 placeholder="Add a comment…"
-                placeholderTextColor="#666"
+                placeholderTextColor={COLORS.onBgDim}
                 style={styles.input}
                 onSubmitEditing={submit}
                 returnKeyType="send"
@@ -104,9 +131,16 @@ export default function CommentsSheet({
                 testID="comment-send"
                 onPress={submit}
                 disabled={posting || !text.trim()}
-                style={[styles.send, (!text.trim() || posting) && { opacity: 0.4 }]}
+                style={[(!text.trim() || posting) && { opacity: 0.4 }]}
               >
-                <Ionicons name="arrow-up" size={20} color="#fff" />
+                <LinearGradient
+                  colors={BRAND_GRADIENT as unknown as string[]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.send}
+                >
+                  <Ionicons name="arrow-up" size={20} color="#fff" />
+                </LinearGradient>
               </Pressable>
             </View>
           </KeyboardAvoidingView>
@@ -117,35 +151,46 @@ export default function CommentsSheet({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)" },
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)" },
   sheet: {
     position: "absolute", left: 0, right: 0, bottom: 0,
-    height: "72%", backgroundColor: COLORS.surface2,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    borderTopWidth: 1, borderColor: COLORS.border,
+    height: "76%", backgroundColor: COLORS.surface,
+    borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl,
+    borderTopWidth: 1, borderColor: COLORS.borderStrong,
   },
   handle: { alignSelf: "center", width: 44, height: 4, borderRadius: 2, backgroundColor: COLORS.borderStrong, marginTop: 10 },
-  header: { paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  title: { color: COLORS.onSurface, fontSize: 16, fontWeight: "700" },
-  empty: { color: COLORS.onSurface3, textAlign: "center", marginTop: 40 },
-  commentRow: { flexDirection: "row", gap: 12, paddingVertical: 12 },
-  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.surface3, alignItems: "center", justifyContent: "center" },
-  avatarInit: { color: "#fff", fontWeight: "700" },
-  cUser: { color: COLORS.brandSecondary, fontSize: 13, fontWeight: "700" },
-  cText: { color: COLORS.onSurface, fontSize: 14, marginTop: 2, lineHeight: 20 },
+  header: { paddingHorizontal: 20, paddingVertical: 14, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  eyebrow: { ...TYPE.label, color: COLORS.brand2 },
+  title: { ...TYPE.h3, color: COLORS.onBg, fontSize: 18, marginTop: 2 },
+  closeBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: COLORS.surface2, alignItems: "center", justifyContent: "center",
+    borderWidth: 1, borderColor: COLORS.border,
+  },
+  emptyBox: { alignItems: "center", padding: 40, gap: 10 },
+  emptyIcon: {
+    width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center",
+    backgroundColor: COLORS.surface2, borderWidth: 1, borderColor: COLORS.border,
+  },
+  emptyText: { color: COLORS.onBgMuted, textAlign: "center", fontSize: 14, fontWeight: "500" },
+  commentRow: { flexDirection: "row", gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.divider },
+  avatar: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  avatarInit: { color: "#fff", fontWeight: "800", fontSize: 14 },
+  cUser: { color: COLORS.brand2, fontSize: 13, fontWeight: "700" },
+  cText: { color: COLORS.onBg, fontSize: 14, marginTop: 3, lineHeight: 20, fontWeight: "500" },
   inputBar: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    paddingHorizontal: 16, paddingVertical: 12,
+    flexDirection: "row", alignItems: "center", gap: 10,
+    paddingHorizontal: 20, paddingVertical: 12,
     borderTopWidth: 1, borderTopColor: COLORS.border,
-    backgroundColor: COLORS.surface2,
+    backgroundColor: COLORS.surface,
   },
   input: {
-    flex: 1, height: 44, borderRadius: 22, paddingHorizontal: 16,
-    backgroundColor: COLORS.surface3, color: COLORS.onSurface,
+    flex: 1, height: 46, borderRadius: RADIUS.pill, paddingHorizontal: 16,
+    backgroundColor: COLORS.surface2, color: COLORS.onBg, fontSize: 15, fontWeight: "500",
     borderWidth: 1, borderColor: COLORS.border,
   },
   send: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: COLORS.brandPrimary, alignItems: "center", justifyContent: "center",
+    width: 46, height: 46, borderRadius: 23,
+    alignItems: "center", justifyContent: "center",
   },
 });

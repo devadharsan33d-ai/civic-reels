@@ -28,19 +28,5 @@ export async function api<T = any>(
   return (await res.json()) as T;
 }
 
-export const COLORS = {
-  surface: "#050505",
-  onSurface: "#F5F5F5",
-  surface2: "#121212",
-  surface3: "#1C1C1C",
-  onSurface2: "#E0E0E0",
-  onSurface3: "#CCCCCC",
-  brand: "#064E3B",
-  brandPrimary: "#059669",
-  brandSecondary: "#34D399",
-  brandTertiary: "#A7F3D0",
-  success: "#10B981",
-  error: "#EF4444",
-  border: "#262626",
-  borderStrong: "#404040",
-};
+// Re-export theme for backward compat (existing files import COLORS from "@/src/utils/api")
+export { COLORS } from "@/src/theme";

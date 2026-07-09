@@ -1,31 +1,37 @@
 import { useState } from "react";
 import {
-  View, Text, StyleSheet, TextInput, Pressable, ActivityIndicator,
-  KeyboardAvoidingView, Platform, ScrollView,
+  View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { useAuth } from "@/src/context/AuthContext";
-import { api, COLORS } from "@/src/utils/api";
+import { useToast } from "@/src/components/Toast";
+import { api } from "@/src/utils/api";
+import { COLORS, RADIUS, TYPE } from "@/src/theme";
+import FloatingInput from "@/src/components/FloatingInput";
+import GradientButton from "@/src/components/GradientButton";
 
 export default function OnboardingScreen() {
-  const { user, refresh } = useAuth();
+  const { user, refresh, logout } = useAuth();
   const router = useRouter();
+  const { show } = useToast();
   const [name, setName] = useState(user?.name || "");
   const [username, setUsername] = useState("");
   const [country, setCountry] = useState("");
   const [state, setState] = useState("");
   const [slogan, setSlogan] = useState("");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [usernameErr, setUsernameErr] = useState<string | null>(null);
 
   const submit = async () => {
     if (!username.trim()) {
-      setError("Username is required");
+      setUsernameErr("Please pick a username");
       return;
     }
-    setError(null);
+    setUsernameErr(null);
     setSaving(true);
     try {
       await api("/users/profile", {
@@ -33,110 +39,124 @@ export default function OnboardingScreen() {
         body: { name, username, country, state, slogan },
       });
       await refresh();
+      show("Welcome to Civic Reels!", "success");
       router.replace("/(tabs)");
     } catch (e: any) {
-      setError(e?.message || "Failed to save");
+      const msg = e?.message || "Failed to save";
+      if (/username/i.test(msg)) setUsernameErr(msg);
+      else show(msg, "error");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.container} testID="onboarding-screen">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
-      >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.title}>Complete your profile</Text>
-          <Text style={styles.subtitle}>Tell your community who you are.</Text>
-
-          <Field label="Full name" value={name} onChange={setName} placeholder="Jane Doe" testID="onb-name" />
-          <Field
-            label="Username"
-            value={username}
-            onChange={(v) => setUsername(v.toLowerCase().replace(/\s+/g, "_"))}
-            placeholder="jane_doe"
-            testID="onb-username"
-            prefix="@"
-          />
-          <Field label="Country" value={country} onChange={setCountry} placeholder="India" testID="onb-country" />
-          <Field label="State" value={state} onChange={setState} placeholder="Karnataka" testID="onb-state" />
-          <Field
-            label="Slogan"
-            value={slogan}
-            onChange={setSlogan}
-            placeholder="Change begins with a voice."
-            testID="onb-slogan"
-            multiline
-          />
-
-          {error && <Text style={styles.error} testID="onb-error">{error}</Text>}
-
-          <Pressable
-            testID="onb-submit"
-            onPress={submit}
-            disabled={saving}
-            style={({ pressed }) => [styles.submit, pressed && { opacity: 0.85 }, saving && { opacity: 0.6 }]}
-          >
-            {saving ? <ActivityIndicator color="#fff" /> : (
-              <>
-                <Text style={styles.submitText}>Enter CivicReel</Text>
-                <Ionicons name="arrow-forward" size={18} color="#fff" />
-              </>
-            )}
-          </Pressable>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
-}
-
-function Field({
-  label, value, onChange, placeholder, testID, multiline, prefix,
-}: {
-  label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; testID?: string; multiline?: boolean; prefix?: string;
-}) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={[styles.inputWrap, multiline && { minHeight: 88, alignItems: "flex-start" }]}>
-        {prefix && <Text style={styles.prefix}>{prefix}</Text>}
-        <TextInput
-          testID={testID}
-          value={value}
-          onChangeText={onChange}
-          placeholder={placeholder}
-          placeholderTextColor="#666"
-          style={[styles.input, multiline && { height: 88, textAlignVertical: "top" }]}
-          multiline={multiline}
-          autoCapitalize={prefix ? "none" : "sentences"}
-        />
+    <View style={styles.container} testID="onboarding-screen">
+      <View style={StyleSheet.absoluteFill}>
+        <LinearGradient colors={["#1E1B4B", "#0A0A0A"]} style={StyleSheet.absoluteFill} />
+        <View style={styles.orb} />
       </View>
+
+      <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+        <View style={styles.header}>
+          <Pressable onPress={logout} hitSlop={12} testID="onb-back">
+            <Ionicons name="arrow-back" size={22} color={COLORS.onBg} />
+          </Pressable>
+          <Text style={styles.stepLabel}>Step 1 of 1</Text>
+          <View style={{ width: 22 }} />
+        </View>
+
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ flex: 1 }}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <Animated.View entering={FadeInDown.duration(500)}>
+              <Text style={styles.eyebrow}>your identity</Text>
+              <Text style={styles.title}>Set up your{"\n"}civic profile</Text>
+              <Text style={styles.subtitle}>
+                A voice needs a name. Pick a handle your neighbours will remember.
+              </Text>
+            </Animated.View>
+
+            <Animated.View entering={FadeInDown.duration(500).delay(100)} style={styles.fields}>
+              <FloatingInput
+                label="Full name"
+                value={name}
+                onChangeText={setName}
+                testID="onb-name"
+              />
+              <FloatingInput
+                label="Username"
+                prefix="@"
+                autoCapitalize="none"
+                value={username}
+                onChangeText={(v) => setUsername(v.toLowerCase().replace(/\s+/g, "_"))}
+                errorText={usernameErr}
+                testID="onb-username"
+              />
+              <View style={styles.row2}>
+                <FloatingInput
+                  label="Country"
+                  value={country}
+                  onChangeText={setCountry}
+                  containerStyle={{ flex: 1 }}
+                  testID="onb-country"
+                />
+                <FloatingInput
+                  label="State"
+                  value={state}
+                  onChangeText={setState}
+                  containerStyle={{ flex: 1 }}
+                  testID="onb-state"
+                />
+              </View>
+              <FloatingInput
+                label="Slogan"
+                multiline
+                value={slogan}
+                onChangeText={setSlogan}
+                testID="onb-slogan"
+              />
+            </Animated.View>
+          </ScrollView>
+
+          <View style={styles.footer}>
+            <GradientButton
+              label={saving ? "Saving…" : "Enter Civic Reels"}
+              onPress={submit}
+              loading={saving}
+              size="lg"
+              testID="onb-submit"
+              icon={<Ionicons name="arrow-forward" size={18} color="#fff" />}
+            />
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surface },
-  content: { padding: 24, gap: 14, paddingBottom: 40 },
-  title: { color: COLORS.onSurface, fontSize: 28, fontWeight: "800", letterSpacing: -0.5 },
-  subtitle: { color: COLORS.onSurface3, fontSize: 14, marginBottom: 12 },
-  field: { gap: 8 },
-  label: { color: COLORS.onSurface2, fontSize: 13, fontWeight: "600" },
-  inputWrap: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: COLORS.surface2, borderRadius: 12,
-    borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 14,
-    minHeight: 52,
+  container: { flex: 1, backgroundColor: COLORS.bg },
+  orb: {
+    position: "absolute", top: 120, right: -100, width: 320, height: 320, borderRadius: 320,
+    backgroundColor: "rgba(217,70,239,0.32)", opacity: 0.7,
   },
-  prefix: { color: COLORS.onSurface3, fontSize: 16, marginRight: 4 },
-  input: { flex: 1, color: COLORS.onSurface, fontSize: 16, paddingVertical: 12 },
-  submit: {
-    marginTop: 12, height: 54, borderRadius: 999, backgroundColor: COLORS.brandPrimary,
-    alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8,
+  header: {
+    paddingHorizontal: 20, paddingTop: 8, paddingBottom: 8,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
   },
-  submitText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  error: { color: COLORS.error, fontSize: 13 },
+  stepLabel: { ...TYPE.label, color: COLORS.onBgMuted },
+  scroll: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 40, gap: 24 },
+  eyebrow: { ...TYPE.label, color: COLORS.brand2 },
+  title: { ...TYPE.display, fontSize: 36, color: COLORS.onBg, marginTop: 6, lineHeight: 42 },
+  subtitle: { color: COLORS.onBgMuted, fontSize: 15, lineHeight: 22, marginTop: 12, fontWeight: "500" },
+  fields: { gap: 14 },
+  row2: { flexDirection: "row", gap: 12 },
+  footer: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12 },
 });

@@ -1,0 +1,34 @@
+{
+  "summary": "Frontend-only UI/UX regression for the 'Civic Reels' redesign. Seeded session 'dbg_tok' in localStorage and validated every requested flow on mobile viewport 390x844. All critical premium-redesign requirements pass: gradient 'Civic Reels' logo on login/feed, ambient orbs + feature pills + gradient 'Continue with Google' CTA on login, unauthenticated redirect to /login, feed reels FlatList with gradient category pill / right-side glass action stack / gradient fallback avatars / bottom scrim + description + tagged users, like toggle animates and does not crash, comments bottom-sheet opens with 'Be the first to comment' empty state + gradient send button + add-comment input, search screen has gradient segmented control 'Problems | People' + single horizontal scrollable chip row with 11 chips (All + 10 categories, never wraps to two lines), toggling Problems<->People 3 times triggered ZERO 'Changing numColumns on the fly' Invariant Violations, Users mode with query 'priya' returns Priya Sharma / @priya_s row with gradient avatar fallback, Problems mode grid shows gradient category pill + heart count overlay, create tab shows gradient shutter + gradient 'Grant camera access' badge, profile screen shows 'Priya Sharma / Karnataka / Edit profile' with stats card + posts grid, bottom tab bar has 4 items with gradient FAB and gradient underline dot on active tab, onboarding empty-username validation shows inline 'Please pick a username'. Zero page errors and zero invariant violations across all interactions. Non-blocking react-native-web deprecation warnings observed: shadow*/textShadow*/pointerEvents style props, plus dev-time Layout warnings for non-existent tab screens 'search-alt' and 'notifications'.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "styles.shadow* / textShadow*", "issue": "react-native-web console warnings: '\"shadow*\" style props are deprecated. Use \"boxShadow\"' and '\"textShadow*\" style props are deprecated. Use \"textShadow\"'. Emitted from multiple screens (login, feed, tabs FAB) that use shadowColor/shadowOpacity/shadowRadius/shadowOffset. Non-blocking on native, but shows in web preview. Reference: /app/frontend/app/login.tsx (ctaWrap), /app/frontend/app/(tabs)/_layout.tsx (fabWrap), /app/frontend/app/(tabs)/index.tsx (emptyGlow)."},
+      {"component": "Pressable pointerEvents", "issue": "Runtime warning 'props.pointerEvents is deprecated. Use style.pointerEvents' from RNW. Likely emitted by expo-router / reanimated overlay layers. Non-blocking; consider upgrading affected dependencies or moving pointerEvents into style."},
+      {"component": "Tabs layout ghost routes", "issue": "Dev warnings: '[Layout children]: No route named \"search-alt\" exists in nested children' and same for 'notifications'. Reference: /app/frontend/app/(tabs)/_layout.tsx lines 78-90 declares <Tabs.Screen name=\"search-alt\"/> and <Tabs.Screen name=\"notifications\"/> with href:null even though those files do not exist under app/(tabs)/. Remove those two <Tabs.Screen> entries to silence the warning."},
+      {"component": "reanimated useNativeDriver on web", "issue": "Warning: 'Animated: useNativeDriver is not supported because the native animated module is missing. Falling back to JS-based animation.' Expected on web preview only; ignore for native builds."}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Remove <Tabs.Screen name=\"search-alt\"/> and <Tabs.Screen name=\"notifications\"/> declarations from /app/frontend/app/(tabs)/_layout.tsx since no matching route files exist — this silences the Layout children dev warnings.",
+    "Migrate shadow*/textShadow*/pointerEvents style props to their new APIs (boxShadow, textShadow, style.pointerEvents) to eliminate react-native-web deprecation warnings (cosmetic; not user-facing).",
+    "(Optional) Toast on successful profile save could not be captured in automation because the on-screen 'Save changes' button in the edit sheet was not directly reachable via automation click in one run. Please self-test manually — the code path exists (show('Profile updated','success')) and Toast provider is wired in _layout.tsx."
+  ],
+  "critical_code_review_comments": [
+    "Search screen numColumns fix (key='users-list' / key='problems-grid') is stable — 3 rapid toggles produced 0 invariant errors.",
+    "app/(tabs)/_layout.tsx declares Tabs.Screen entries for 'search-alt' and 'notifications' that don't exist as files → dev warning. Safe cleanup.",
+    "Feed uses `data:image/jpeg;base64,${b}` fallback assuming JPEG; if uploads are PNG the mime is wrong. Consider storing mime in DB or sniffing from base64 header.",
+    "Profile stats card renders '—' placeholders for Followers and Impact — acceptable for MVP but flag for future implementation."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only per request)", "frontend": "100% (all requested UI/UX scenarios verified; 0 invariant violations; 0 pageerrors)"},
+  "seed_data_creation": "Used existing seeded session 'dbg_tok' -> Priya Sharma (@priya_s, Karnataka). No new seed created.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Session token 'dbg_tok' seeded — localStorage.setItem('civicreel_session_token','dbg_tok') on the preview origin then navigate to /. Navigating to /profile directly with wait_until='domcontentloaded' can render blank momentarily; use wait_until='load' and poll for 'Priya' text for up to 10s. Feed empty-state was not exercised (feed had 3 seed posts). Create tab requires camera permission which browser preview cannot grant — verify only the gradient badge + 'Grant camera access' CTA render.",
+  "rca_of_issue": "No new bugs. Prior numColumns fix (iteration_2) re-verified stable — 3 back-to-back Problems<->People toggles produced 0 'Changing numColumns on the fly' errors."
+}

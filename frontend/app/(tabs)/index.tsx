@@ -1,16 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, Dimensions,
-  RefreshControl,
+  View, Text, StyleSheet, FlatList, Pressable, Dimensions, RefreshControl,
 } from "react-native";
 import { Image } from "expo-image";
+import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import Animated, { FadeIn, useSharedValue, useAnimatedStyle, withSpring, withSequence } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { api, COLORS } from "@/src/utils/api";
+import { api } from "@/src/utils/api";
+import { BRAND_GRADIENT, categoryGradient, categoryIcon, COLORS, RADIUS, TYPE } from "@/src/theme";
 import CommentsSheet from "@/src/components/CommentsSheet";
+import Logo from "@/src/components/Logo";
 
 const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get("window");
 
@@ -29,6 +32,7 @@ type Post = {
 
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -43,10 +47,7 @@ export default function FeedScreen() {
   }, []);
 
   useEffect(() => {
-    (async () => {
-      await load();
-      setLoading(false);
-    })();
+    (async () => { await load(); setLoading(false); })();
   }, [load]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -59,7 +60,6 @@ export default function FeedScreen() {
 
   const onLike = async (postId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    // optimistic
     setPosts((cur) =>
       cur.map((p) =>
         p.post_id === postId
@@ -81,19 +81,51 @@ export default function FeedScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}><ActivityIndicator color={COLORS.brandSecondary} /></View>
+      <View style={styles.emptyContainer} testID="feed-loading">
+        <FeedTopBar topInset={insets.top} />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <View style={styles.loaderBadge}>
+            <LinearGradient
+              colors={BRAND_GRADIENT as unknown as string[]}
+              style={StyleSheet.absoluteFill}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+            <Ionicons name="sparkles" size={22} color="#fff" />
+          </View>
+          <Text style={styles.loaderText}>Loading the neighbourhood…</Text>
+        </View>
+      </View>
     );
   }
 
   if (posts.length === 0) {
     return (
-      <SafeAreaView style={styles.center} testID="feed-empty">
-        <View style={styles.emptyCard}>
-          <Ionicons name="camera-outline" size={48} color={COLORS.brandSecondary} />
-          <Text style={styles.emptyTitle}>No reports yet</Text>
-          <Text style={styles.emptyBody}>Tap the + tab to post the first civic problem in your area.</Text>
-          <Pressable style={styles.refreshBtn} onPress={onRefresh} testID="feed-refresh">
-            <Text style={styles.refreshText}>Refresh</Text>
+      <SafeAreaView style={styles.emptyContainer} testID="feed-empty">
+        <FeedTopBar topInset={0} />
+        <View style={styles.emptyBox}>
+          <LinearGradient
+            colors={BRAND_GRADIENT as unknown as string[]}
+            style={styles.emptyGlow}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Ionicons name="camera" size={30} color="#fff" />
+          </LinearGradient>
+          <Text style={styles.emptyTitle}>Be the first to speak up</Text>
+          <Text style={styles.emptyBody}>
+            No reports in your area yet. Snap a photo and put a problem on the map.
+          </Text>
+          <Pressable onPress={() => router.push("/(tabs)/create")} testID="empty-create" style={styles.emptyCtaWrap}>
+            <LinearGradient
+              colors={BRAND_GRADIENT as unknown as string[]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.emptyCta}
+            >
+              <Ionicons name="add" size={18} color="#fff" />
+              <Text style={styles.emptyCtaText}>Post a report</Text>
+            </LinearGradient>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -109,18 +141,19 @@ export default function FeedScreen() {
         snapToInterval={itemHeight}
         decelerationRate="fast"
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.brandSecondary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.brand2} />}
         renderItem={({ item }) => (
           <ReelItem
             post={item}
             height={itemHeight}
             topInset={insets.top}
-            bottomInset={insets.bottom + 72}
+            bottomInset={insets.bottom + 76}
             onLike={() => onLike(item.post_id)}
             onComment={() => setCommentsPostId(item.post_id)}
           />
         )}
       />
+      <FeedTopBar topInset={insets.top} overlay />
       {commentsPostId && (
         <CommentsSheet
           postId={commentsPostId}
@@ -132,73 +165,117 @@ export default function FeedScreen() {
   );
 }
 
+function FeedTopBar({ topInset, overlay }: { topInset: number; overlay?: boolean }) {
+  return (
+    <View style={[
+      styles.topBar,
+      { paddingTop: topInset + 6 },
+      overlay && { position: "absolute", left: 0, right: 0, top: 0, zIndex: 5 },
+    ]}>
+      <LinearGradient
+        colors={overlay ? ["rgba(0,0,0,0.55)", "transparent"] : ["transparent", "transparent"]}
+        style={StyleSheet.absoluteFill}
+      />
+      <Logo size={22} />
+      <View style={{ flex: 1 }} />
+      <Pressable style={styles.topIconBtn} hitSlop={8}>
+        <Ionicons name="notifications-outline" size={20} color="#fff" />
+      </Pressable>
+    </View>
+  );
+}
+
 function ReelItem({
   post, height, topInset, bottomInset, onLike, onComment,
 }: {
   post: Post; height: number; topInset: number; bottomInset: number;
   onLike: () => void; onComment: () => void;
 }) {
+  const heart = useSharedValue(1);
   const src = useMemo(() => {
     const b = post.image_base64;
     if (b?.startsWith("data:") || b?.startsWith("http")) return b;
     return `data:image/jpeg;base64,${b}`;
   }, [post.image_base64]);
 
+  const [c1, c2] = categoryGradient(post.category);
+
+  const heartStyle = useAnimatedStyle(() => ({ transform: [{ scale: heart.value }] }));
+  const handleLike = () => {
+    heart.value = withSequence(withSpring(1.35, { damping: 4, mass: 0.5 }), withSpring(1));
+    onLike();
+  };
+
   return (
     <View style={[styles.reel, { height }]} testID={`reel-${post.post_id}`}>
       <Image source={{ uri: src }} style={styles.image} contentFit="cover" transition={200} />
       <LinearGradient
-        colors={["rgba(0,0,0,0.55)", "transparent", "transparent", "rgba(5,5,5,0.85)"]}
-        locations={[0, 0.2, 0.55, 1]}
+        colors={["rgba(0,0,0,0.65)", "transparent", "transparent", "rgba(0,0,0,0.9)"]}
+        locations={[0, 0.22, 0.5, 1]}
         style={StyleSheet.absoluteFill}
       />
 
       {/* Top: category pill */}
-      <View style={[styles.topRow, { top: topInset + 12 }]}>
-        <View style={styles.catPill}>
-          <Ionicons name="pricetag" size={12} color={COLORS.brandTertiary} />
-          <Text style={styles.catPillText}>{post.category.toUpperCase()}</Text>
+      <View style={[styles.topRow, { top: topInset + 56 }]}>
+        <View style={styles.catPillWrap}>
+          <LinearGradient
+            colors={[c1, c2]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.catPill}
+          >
+            <Ionicons name={categoryIcon(post.category) as any} size={12} color="#fff" />
+            <Text style={styles.catPillText}>{post.category.toUpperCase()}</Text>
+          </LinearGradient>
         </View>
       </View>
 
       {/* Right action stack */}
-      <View style={[styles.rightStack, { bottom: bottomInset + 20 }]}>
-        <ActionButton
-          testID={`like-${post.post_id}`}
-          icon={post.liked ? "heart" : "heart-outline"}
-          color={post.liked ? COLORS.error : "#fff"}
-          label={`${post.like_count}`}
-          onPress={onLike}
-        />
-        <ActionButton
-          testID={`comment-${post.post_id}`}
-          icon="chatbubble-outline"
-          color="#fff"
-          label={`${post.comment_count}`}
-          onPress={onComment}
-        />
-        <ActionButton
-          testID={`share-${post.post_id}`}
-          icon="paper-plane-outline"
-          color="#fff"
-          label="Share"
-          onPress={() => {}}
-        />
+      <View style={[styles.rightStack, { bottom: bottomInset + 24 }]}>
+        <Pressable onPress={handleLike} style={styles.actionBtn} testID={`like-${post.post_id}`}>
+          <Animated.View style={[styles.actionGlass, heartStyle]}>
+            <BlurView tint="dark" intensity={40} style={StyleSheet.absoluteFill} />
+            <Ionicons name={post.liked ? "heart" : "heart-outline"} size={26} color={post.liked ? "#F43F5E" : "#fff"} />
+          </Animated.View>
+          <Text style={styles.actionLabel}>{formatCount(post.like_count)}</Text>
+        </Pressable>
+
+        <Pressable onPress={onComment} style={styles.actionBtn} testID={`comment-${post.post_id}`}>
+          <View style={styles.actionGlass}>
+            <BlurView tint="dark" intensity={40} style={StyleSheet.absoluteFill} />
+            <Ionicons name="chatbubble-outline" size={24} color="#fff" />
+          </View>
+          <Text style={styles.actionLabel}>{formatCount(post.comment_count)}</Text>
+        </Pressable>
+
+        <Pressable style={styles.actionBtn} testID={`share-${post.post_id}`}>
+          <View style={styles.actionGlass}>
+            <BlurView tint="dark" intensity={40} style={StyleSheet.absoluteFill} />
+            <Ionicons name="paper-plane-outline" size={22} color="#fff" />
+          </View>
+          <Text style={styles.actionLabel}>Share</Text>
+        </Pressable>
       </View>
 
       {/* Bottom text */}
-      <View style={[styles.bottomInfo, { bottom: bottomInset + 20, right: 92 }]}>
+      <Animated.View entering={FadeIn.duration(400)} style={[styles.bottomInfo, { bottom: bottomInset + 24 }]}>
         <View style={styles.authorRow}>
           {post.author.picture ? (
             <Image source={{ uri: post.author.picture }} style={styles.avatar} />
           ) : (
-            <View style={[styles.avatar, styles.avatarFallback]}>
+            <LinearGradient
+              colors={BRAND_GRADIENT as unknown as string[]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.avatar}
+            >
               <Text style={styles.avatarInit}>{post.author.name?.[0]?.toUpperCase() || "?"}</Text>
-            </View>
+            </LinearGradient>
           )}
-          <Text style={styles.username} numberOfLines={1}>
-            @{post.author.username || post.author.name}
-          </Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.username} numberOfLines={1}>@{post.author.username || post.author.name}</Text>
+            <Text style={styles.subLine} numberOfLines={1}>{formatTime(post.created_at)}</Text>
+          </View>
         </View>
         <Text style={styles.description} numberOfLines={4}>{post.description}</Text>
         {post.tagged_usernames?.length > 0 && (
@@ -206,56 +283,81 @@ function ReelItem({
             {post.tagged_usernames.map((u) => `@${u}`).join("  ")}
           </Text>
         )}
-      </View>
+      </Animated.View>
     </View>
   );
 }
 
-function ActionButton({
-  icon, color, label, onPress, testID,
-}: { icon: any; color: string; label: string; onPress: () => void; testID?: string }) {
-  return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.7 }]} testID={testID}>
-      <View style={styles.actionGlass}>
-        <Ionicons name={icon} size={26} color={color} />
-      </View>
-      <Text style={styles.actionLabel}>{label}</Text>
-    </Pressable>
-  );
+function formatCount(n: number) {
+  if (n < 1000) return `${n}`;
+  if (n < 1_000_000) return `${(n / 1000).toFixed(1)}k`;
+  return `${(n / 1_000_000).toFixed(1)}m`;
+}
+
+function formatTime(iso: string) {
+  try {
+    const d = new Date(iso);
+    const diff = (Date.now() - d.getTime()) / 1000;
+    if (diff < 60) return "just now";
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+    return d.toLocaleDateString();
+  } catch { return ""; }
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surface },
-  center: { flex: 1, backgroundColor: COLORS.surface, alignItems: "center", justifyContent: "center", padding: 24 },
-  emptyCard: { alignItems: "center", gap: 12 },
-  emptyTitle: { color: COLORS.onSurface, fontSize: 20, fontWeight: "700" },
-  emptyBody: { color: COLORS.onSurface3, fontSize: 14, textAlign: "center" },
-  refreshBtn: { marginTop: 8, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 999, backgroundColor: COLORS.brandPrimary },
-  refreshText: { color: "#fff", fontWeight: "600" },
+  container: { flex: 1, backgroundColor: "#000" },
+  emptyContainer: { flex: 1, backgroundColor: COLORS.bg },
+  topBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 8, gap: 12 },
+  topIconBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.08)", borderWidth: 1, borderColor: COLORS.border,
+  },
+  loaderBadge: {
+    width: 56, height: 56, borderRadius: 28, overflow: "hidden",
+    alignItems: "center", justifyContent: "center", marginBottom: 12,
+  },
+  loaderText: { color: COLORS.onBgMuted, fontWeight: "600" },
+  emptyBox: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 12 },
+  emptyGlow: {
+    width: 64, height: 64, borderRadius: 32, alignItems: "center", justifyContent: "center", marginBottom: 8,
+    shadowColor: "#D946EF", shadowOpacity: 0.4, shadowRadius: 18, shadowOffset: { width: 0, height: 8 },
+  },
+  emptyTitle: { ...TYPE.h2, color: COLORS.onBg, fontSize: 24, textAlign: "center" },
+  emptyBody: { color: COLORS.onBgMuted, textAlign: "center", fontSize: 15, lineHeight: 22, maxWidth: 300 },
+  emptyCtaWrap: { marginTop: 12, borderRadius: RADIUS.pill, overflow: "hidden" },
+  emptyCta: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 20, paddingVertical: 12 },
+  emptyCtaText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   reel: { width: SCREEN_W, backgroundColor: "#000" },
   image: { width: "100%", height: "100%" },
   topRow: { position: "absolute", left: 16, right: 16, flexDirection: "row" },
+  catPillWrap: {
+    borderRadius: RADIUS.pill, overflow: "hidden",
+    shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
+  },
   catPill: {
     flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: "rgba(6,78,59,0.6)", borderWidth: 1, borderColor: "rgba(52,211,153,0.4)",
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS.pill,
   },
-  catPillText: { color: COLORS.brandTertiary, fontSize: 11, fontWeight: "700", letterSpacing: 0.5 },
-  rightStack: { position: "absolute", right: 12, gap: 18, alignItems: "center" },
-  actionBtn: { alignItems: "center", gap: 4 },
+  catPillText: { color: "#fff", fontSize: 11, fontWeight: "800", letterSpacing: 1 },
+  rightStack: { position: "absolute", right: 12, gap: 22, alignItems: "center" },
+  actionBtn: { alignItems: "center", gap: 6 },
   actionGlass: {
-    width: 50, height: 50, borderRadius: 25,
-    backgroundColor: "rgba(28,28,28,0.6)",
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.08)",
+    width: 52, height: 52, borderRadius: 26,
     alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.14)",
+    overflow: "hidden",
   },
-  actionLabel: { color: "#fff", fontSize: 11, fontWeight: "600" },
-  bottomInfo: { position: "absolute", left: 16, gap: 8 },
+  actionLabel: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  bottomInfo: { position: "absolute", left: 16, right: 92, gap: 10 },
   authorRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  avatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 1.5, borderColor: COLORS.brandSecondary },
-  avatarFallback: { backgroundColor: COLORS.surface3, alignItems: "center", justifyContent: "center" },
-  avatarInit: { color: "#fff", fontSize: 14, fontWeight: "700" },
-  username: { color: "#fff", fontSize: 15, fontWeight: "700" },
-  description: { color: "#fff", fontSize: 14, lineHeight: 20, opacity: 0.95 },
-  tags: { color: COLORS.brandTertiary, fontSize: 13, fontWeight: "600" },
+  avatar: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
+  avatarInit: { color: "#fff", fontSize: 16, fontWeight: "800" },
+  username: { color: "#fff", fontSize: 15, fontWeight: "800" },
+  subLine: { color: "rgba(255,255,255,0.7)", fontSize: 12, fontWeight: "500", marginTop: 2 },
+  description: { color: "#fff", fontSize: 14, lineHeight: 20, fontWeight: "500" },
+  tags: { color: "#F5D0FE", fontSize: 13, fontWeight: "700" },
 });

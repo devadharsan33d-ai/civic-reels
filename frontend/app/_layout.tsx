@@ -7,28 +7,35 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { AuthProvider } from "@/src/context/AuthContext";
+import { ToastProvider } from "@/src/components/Toast";
+import { COLORS } from "@/src/theme";
 
 LogBox.ignoreAllLogs(true);
-
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded, error] = useIconFonts();
 
   useEffect(() => {
-    if (loaded || error) {
-      SplashScreen.hideAsync();
-    }
+    if (loaded || error) SplashScreen.hideAsync();
   }, [loaded, error]);
 
   if (!loaded && !error) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#050505" }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <SafeAreaProvider>
         <AuthProvider>
-          <StatusBar barStyle="light-content" backgroundColor="#050505" />
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#050505" } }} />
+          <ToastProvider>
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: COLORS.bg },
+                animation: "fade",
+              }}
+            />
+          </ToastProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -1,36 +1,41 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator,
-  KeyboardAvoidingView, Platform, Dimensions, Alert,
+  View, Text, StyleSheet, Pressable, ScrollView, KeyboardAvoidingView, Platform, Dimensions, Alert,
 } from "react-native";
 import { Image } from "expo-image";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
-import { api, COLORS } from "@/src/utils/api";
-
-const { width } = Dimensions.get("window");
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { api } from "@/src/utils/api";
+import { useToast } from "@/src/components/Toast";
+import { BRAND_GRADIENT, COLORS, RADIUS, TYPE } from "@/src/theme";
+import FloatingInput from "@/src/components/FloatingInput";
+import GradientButton from "@/src/components/GradientButton";
+import CategoryChip from "@/src/components/CategoryChip";
 
 type Category = { key: string; label: string; icon: any };
-
 type Step = "capture" | "compose";
 
 export default function CreateScreen() {
+  const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>("capture");
-  const [image, setImage] = useState<string | null>(null); // data uri
+  const [image, setImage] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<string>("");
   const [tags, setTags] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [posting, setPosting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [descErr, setDescErr] = useState<string | null>(null);
 
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<"back" | "front">("back");
   const cameraRef = useRef<CameraView>(null);
   const router = useRouter();
+  const { show } = useToast();
 
   useEffect(() => {
     (async () => {
@@ -38,31 +43,21 @@ export default function CreateScreen() {
     })();
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        // reset on blur
-        setStep("capture");
-        setImage(null);
-        setDescription("");
-        setCategory("");
-        setTags("");
-        setError(null);
-      };
-    }, [])
-  );
+  useFocusEffect(useCallback(() => {
+    return () => {
+      setStep("capture"); setImage(null); setDescription(""); setCategory(""); setTags(""); setDescErr(null);
+    };
+  }, []));
 
   const takePhoto = async () => {
     if (!cameraRef.current) return;
     try {
-      const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.6 });
+      const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.55 });
       if (photo?.base64) {
         setImage(`data:image/jpeg;base64,${photo.base64}`);
         setStep("compose");
       }
-    } catch (e: any) {
-      setError("Failed to capture photo");
-    }
+    } catch { show("Failed to capture photo", "error"); }
   };
 
   const pickGallery = async () => {
@@ -73,9 +68,7 @@ export default function CreateScreen() {
     }
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.6,
-      base64: true,
+      allowsEditing: true, quality: 0.55, base64: true,
     });
     if (!res.canceled && res.assets[0]?.base64) {
       setImage(`data:image/jpeg;base64,${res.assets[0].base64}`);
@@ -84,10 +77,10 @@ export default function CreateScreen() {
   };
 
   const submit = async () => {
-    if (!image) { setError("Please add a photo"); return; }
-    if (!description.trim()) { setError("Please describe the problem"); return; }
-    if (!category) { setError("Please pick a category"); return; }
-    setError(null);
+    if (!image) { show("Please add a photo first", "error"); return; }
+    if (!description.trim()) { setDescErr("Describe the problem"); return; }
+    if (!category) { show("Pick a category", "error"); return; }
+    setDescErr(null);
     setPosting(true);
     try {
       const tagList = tags
@@ -96,221 +89,247 @@ export default function CreateScreen() {
         .filter(Boolean);
       await api("/posts", {
         method: "POST",
-        body: {
-          image_base64: image,
-          description: description.trim(),
-          category,
-          tagged_usernames: tagList,
-        },
+        body: { image_base64: image, description: description.trim(), category, tagged_usernames: tagList },
       });
-      setPosting(false);
+      show("Report posted!", "success");
       router.replace("/(tabs)");
     } catch (e: any) {
-      setError(e?.message || "Failed to post");
+      show(e?.message || "Failed to post", "error");
+    } finally {
       setPosting(false);
     }
   };
 
-  // ------- Step 1: Capture -------
+  // ------- STEP 1: CAPTURE -------
   if (step === "capture") {
     return (
-      <SafeAreaView style={styles.container} testID="create-capture">
-        <View style={styles.captureHeader}>
-          <Text style={styles.title}>Report a problem</Text>
-          <Text style={styles.subtitle}>Take a photo or pick from gallery.</Text>
-        </View>
+      <View style={styles.container} testID="create-capture">
+        <SafeAreaView edges={["top"]} style={styles.captureHeader}>
+          <Pressable onPress={() => router.back()} hitSlop={8} style={styles.headerIconBtn}>
+            <Ionicons name="close" size={22} color={COLORS.onBg} />
+          </Pressable>
+          <View style={{ alignItems: "center" }}>
+            <Text style={styles.eyebrow}>new post</Text>
+            <Text style={styles.headerTitle}>Report a problem</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </SafeAreaView>
 
-        <View style={styles.cameraWrap}>
+        <Animated.View entering={FadeIn.duration(400)} style={styles.cameraWrap}>
           {!permission?.granted ? (
             <View style={styles.permBox}>
-              <Ionicons name="camera-outline" size={44} color={COLORS.brandSecondary} />
-              <Text style={styles.permText}>Camera access is required to capture problems.</Text>
-              <Pressable style={styles.permBtn} onPress={requestPermission} testID="grant-camera">
-                <Text style={styles.permBtnText}>Grant camera access</Text>
-              </Pressable>
+              <View style={styles.permBadge}>
+                <LinearGradient
+                  colors={BRAND_GRADIENT as unknown as string[]}
+                  style={StyleSheet.absoluteFill}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                />
+                <Ionicons name="camera" size={26} color="#fff" />
+              </View>
+              <Text style={styles.permTitle}>Camera access needed</Text>
+              <Text style={styles.permBody}>
+                We need your camera to capture the civic issue right where it is.
+              </Text>
+              <GradientButton
+                label="Grant camera access"
+                onPress={requestPermission}
+                testID="grant-camera"
+                size="md"
+                fullWidth={false}
+                icon={<Ionicons name="lock-open" size={16} color="#fff" />}
+              />
             </View>
           ) : (
-            <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} />
+            <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing}>
+              <View style={styles.cameraFrame} />
+            </CameraView>
           )}
-        </View>
+        </Animated.View>
 
-        <View style={styles.controlsRow}>
-          <Pressable style={styles.smallBtn} onPress={pickGallery} testID="pick-gallery">
-            <Ionicons name="images-outline" size={22} color="#fff" />
-            <Text style={styles.smallBtnText}>Gallery</Text>
+        <View style={[styles.captureFooter, { paddingBottom: insets.bottom + 96 }]}>
+          <Pressable style={styles.roundBtn} onPress={pickGallery} testID="pick-gallery">
+            <Ionicons name="images" size={22} color="#fff" />
           </Pressable>
 
           <Pressable
-            style={[styles.shutter, !permission?.granted && { opacity: 0.4 }]}
+            style={[styles.shutterOuter, !permission?.granted && { opacity: 0.4 }]}
             onPress={takePhoto}
             disabled={!permission?.granted}
             testID="shutter"
           >
-            <View style={styles.shutterInner} />
+            <LinearGradient
+              colors={BRAND_GRADIENT as unknown as string[]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.shutterInner}
+            />
           </Pressable>
 
           <Pressable
-            style={styles.smallBtn}
+            style={styles.roundBtn}
             onPress={() => setFacing((f) => (f === "back" ? "front" : "back"))}
             testID="flip"
           >
-            <Ionicons name="camera-reverse-outline" size={22} color="#fff" />
-            <Text style={styles.smallBtnText}>Flip</Text>
+            <Ionicons name="camera-reverse" size={22} color="#fff" />
           </Pressable>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
-  // ------- Step 2: Compose -------
+  // ------- STEP 2: COMPOSE -------
   return (
-    <SafeAreaView style={styles.container} testID="create-compose">
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 160 }} keyboardShouldPersistTaps="handled">
-          <View style={styles.composeHeader}>
-            <Pressable onPress={() => setStep("capture")} testID="back-capture" hitSlop={12}>
-              <Ionicons name="chevron-back" size={26} color={COLORS.onSurface} />
-            </Pressable>
-            <Text style={styles.composeTitle}>New Report</Text>
-            <View style={{ width: 26 }} />
-          </View>
+    <View style={styles.container} testID="create-compose">
+      <SafeAreaView edges={["top"]} style={styles.composeHeader}>
+        <Pressable onPress={() => setStep("capture")} hitSlop={8} style={styles.headerIconBtn} testID="back-capture">
+          <Ionicons name="chevron-back" size={22} color={COLORS.onBg} />
+        </Pressable>
+        <Text style={styles.headerTitle}>New Report</Text>
+        <View style={{ width: 40 }} />
+      </SafeAreaView>
 
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 140, gap: 18 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {image && (
-            <View style={styles.previewWrap}>
+            <Animated.View entering={FadeInDown.duration(400)} style={styles.previewWrap}>
               <Image source={{ uri: image }} style={styles.preview} contentFit="cover" />
+              <LinearGradient
+                colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.55)"]}
+                style={StyleSheet.absoluteFill}
+              />
               <Pressable style={styles.retake} onPress={() => setStep("capture")} testID="retake">
                 <Ionicons name="refresh" size={14} color="#fff" />
                 <Text style={styles.retakeText}>Retake</Text>
               </Pressable>
-            </View>
+            </Animated.View>
           )}
 
-          <Text style={styles.label}>Description</Text>
-          <TextInput
-            testID="desc-input"
+          <FloatingInput
+            label="Describe the problem"
+            multiline
             value={description}
             onChangeText={setDescription}
-            placeholder="Describe the problem so people can help."
-            placeholderTextColor="#666"
-            style={[styles.input, { minHeight: 100, textAlignVertical: "top" }]}
-            multiline
+            testID="desc-input"
+            errorText={descErr}
           />
 
-          <Text style={styles.label}>Category</Text>
-          <View style={styles.catWrap}>
-            {categories.map((c) => (
-              <Pressable
-                key={c.key}
-                onPress={() => setCategory(c.key)}
-                style={[styles.catChip, category === c.key && styles.catChipActive]}
-                testID={`cat-${c.key}`}
-              >
-                <Ionicons
-                  name={c.icon}
-                  size={14}
-                  color={category === c.key ? "#022C22" : COLORS.onSurface2}
+          <View>
+            <Text style={styles.sectionLabel}>Category</Text>
+            <View style={styles.catWrap}>
+              {categories.map((c) => (
+                <CategoryChip
+                  key={c.key}
+                  categoryKey={c.key}
+                  label={c.label}
+                  active={category === c.key}
+                  onPress={() => setCategory(c.key)}
+                  testID={`cat-${c.key}`}
                 />
-                <Text style={[styles.catChipText, category === c.key && styles.catChipTextActive]}>
-                  {c.label}
-                </Text>
-              </Pressable>
-            ))}
+              ))}
+            </View>
           </View>
 
-          <Text style={styles.label}>Tag users (optional)</Text>
-          <TextInput
-            testID="tags-input"
+          <FloatingInput
+            label="Tag users (optional)"
             value={tags}
             onChangeText={setTags}
-            placeholder="@mayor @city_council"
-            placeholderTextColor="#666"
-            style={styles.input}
             autoCapitalize="none"
+            testID="tags-input"
           />
-
-          {error && <Text style={styles.error} testID="compose-error">{error}</Text>}
         </ScrollView>
 
-        <View style={styles.footer}>
-          <Pressable
-            testID="post-submit"
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 92 }]}>
+          <LinearGradient
+            colors={["rgba(10,10,10,0)", COLORS.bg]}
+            style={styles.footerScrim}
+            pointerEvents="none"
+          />
+          <GradientButton
+            label={posting ? "Posting…" : "Post to Civic Reels"}
             onPress={submit}
-            disabled={posting}
-            style={({ pressed }) => [styles.postBtn, pressed && { opacity: 0.85 }, posting && { opacity: 0.6 }]}
-          >
-            {posting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Ionicons name="send" size={16} color="#fff" />
-                <Text style={styles.postBtnText}>Post to CivicReel</Text>
-              </>
-            )}
-          </Pressable>
+            loading={posting}
+            size="lg"
+            testID="post-submit"
+            icon={<Ionicons name="send" size={16} color="#fff" />}
+          />
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
+const { width } = Dimensions.get("window");
+const CAM_ASPECT = width - 40;
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surface },
-  captureHeader: { paddingHorizontal: 16, paddingTop: 8, gap: 4, paddingBottom: 12 },
-  title: { color: COLORS.onSurface, fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
-  subtitle: { color: COLORS.onSurface3, fontSize: 13 },
-  cameraWrap: {
-    marginHorizontal: 16, borderRadius: 20, overflow: "hidden",
-    backgroundColor: COLORS.surface2, aspectRatio: 3 / 4,
+  container: { flex: 1, backgroundColor: COLORS.bg },
+  captureHeader: {
+    paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
   },
-  permBox: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 12 },
-  permText: { color: COLORS.onSurface2, textAlign: "center" },
-  permBtn: { marginTop: 8, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 999, backgroundColor: COLORS.brandPrimary },
-  permBtnText: { color: "#fff", fontWeight: "700" },
-  controlsRow: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-around",
-    paddingVertical: 20, paddingHorizontal: 16,
+  composeHeader: {
+    paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
   },
-  smallBtn: { alignItems: "center", gap: 4, width: 80 },
-  smallBtnText: { color: COLORS.onSurface2, fontSize: 12, fontWeight: "600" },
-  shutter: {
-    width: 76, height: 76, borderRadius: 38, borderWidth: 3, borderColor: "#fff",
+  eyebrow: { ...TYPE.label, color: COLORS.brand2, fontSize: 10 },
+  headerTitle: { ...TYPE.h3, color: COLORS.onBg, fontSize: 18, marginTop: 2 },
+  headerIconBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: COLORS.surface2, borderWidth: 1, borderColor: COLORS.border,
     alignItems: "center", justifyContent: "center",
   },
-  shutterInner: { width: 60, height: 60, borderRadius: 30, backgroundColor: COLORS.brandSecondary },
-  composeHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-  composeTitle: { color: COLORS.onSurface, fontSize: 18, fontWeight: "700" },
-  previewWrap: { borderRadius: 16, overflow: "hidden", aspectRatio: 4 / 3, marginBottom: 16, backgroundColor: COLORS.surface2 },
+  cameraWrap: {
+    marginHorizontal: 20, borderRadius: RADIUS.xl, overflow: "hidden",
+    backgroundColor: COLORS.surface2, aspectRatio: 3 / 4,
+    borderWidth: 1, borderColor: COLORS.border,
+  },
+  cameraFrame: {
+    position: "absolute", left: 24, top: 24, right: 24, bottom: 24,
+    borderWidth: 2, borderColor: "rgba(255,255,255,0.3)", borderRadius: RADIUS.lg,
+    borderStyle: "dashed",
+  },
+  permBox: { flex: 1, alignItems: "center", justifyContent: "center", padding: 28, gap: 12 },
+  permBadge: {
+    width: 60, height: 60, borderRadius: 30, alignItems: "center", justifyContent: "center", overflow: "hidden",
+    marginBottom: 4,
+  },
+  permTitle: { ...TYPE.h3, color: COLORS.onBg, fontSize: 18 },
+  permBody: { color: COLORS.onBgMuted, textAlign: "center", fontSize: 14, lineHeight: 20, maxWidth: 260 },
+  captureFooter: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-around",
+    paddingTop: 20, paddingHorizontal: 32,
+  },
+  roundBtn: {
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: COLORS.surface2, borderWidth: 1, borderColor: COLORS.borderStrong,
+    alignItems: "center", justifyContent: "center",
+  },
+  shutterOuter: {
+    width: 84, height: 84, borderRadius: 42, borderWidth: 4, borderColor: "rgba(255,255,255,0.9)",
+    alignItems: "center", justifyContent: "center",
+    shadowColor: "#D946EF", shadowOpacity: 0.5, shadowRadius: 18, shadowOffset: { width: 0, height: 6 },
+  },
+  shutterInner: { width: 66, height: 66, borderRadius: 33 },
+  previewWrap: { borderRadius: RADIUS.xl, overflow: "hidden", aspectRatio: 4 / 3, backgroundColor: COLORS.surface2 },
   preview: { width: "100%", height: "100%" },
   retake: {
-    position: "absolute", top: 10, right: 10, flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: "rgba(0,0,0,0.55)",
+    position: "absolute", top: 12, right: 12, flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: RADIUS.pill, backgroundColor: "rgba(0,0,0,0.55)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.14)",
   },
-  retakeText: { color: "#fff", fontSize: 12, fontWeight: "600" },
-  label: { color: COLORS.onSurface2, fontSize: 13, fontWeight: "600", marginTop: 12, marginBottom: 8 },
-  input: {
-    backgroundColor: COLORS.surface2, borderRadius: 12,
-    borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 14, paddingVertical: 12,
-    color: COLORS.onSurface, fontSize: 15,
-  },
+  retakeText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  sectionLabel: { ...TYPE.label, color: COLORS.onBgMuted, marginBottom: 10 },
   catWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  catChip: {
-    height: 36, paddingHorizontal: 12, borderRadius: 999,
-    flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: COLORS.surface2, borderWidth: 1, borderColor: COLORS.border,
-  },
-  catChipActive: { backgroundColor: COLORS.brandSecondary, borderColor: COLORS.brandSecondary },
-  catChipText: { color: COLORS.onSurface2, fontSize: 13, fontWeight: "600" },
-  catChipTextActive: { color: "#022C22", fontWeight: "700" },
-  error: { color: COLORS.error, marginTop: 12, fontSize: 13 },
   footer: {
     position: "absolute", left: 0, right: 0, bottom: 0,
-    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 96,
-    backgroundColor: COLORS.surface,
-    borderTopWidth: 1, borderTopColor: COLORS.border,
+    paddingHorizontal: 20, paddingTop: 20,
   },
-  postBtn: {
-    height: 54, borderRadius: 999, backgroundColor: COLORS.brandPrimary,
-    alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8,
+  footerScrim: {
+    position: "absolute", left: 0, right: 0, top: -30, height: 50,
   },
-  postBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 });
