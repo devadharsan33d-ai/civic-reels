@@ -1,16 +1,21 @@
 {
   "expo": {
-    "name": "frontend",
+    "name": "CivicReel",
     "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
-    "userInterfaceStyle": "automatic",
+    "scheme": "civicreel",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.emergent.civicvoice.j8yaqc"
+      "bundleIdentifier": "com.emergent.civicvoice.j8yaqc",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Capture problems to report to the community",
+        "NSPhotoLibraryUsageDescription": "Attach photos of problems from your gallery",
+        "NSMicrophoneUsageDescription": "Not used"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +23,12 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.emergent.civicvoice.j8yaqc"
+      "package": "com.emergent.civicvoice.j8yaqc",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -34,6 +44,18 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#000000"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Capture problems to report to the community"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Attach photos of problems from your gallery"
         }
       ]
     ],
