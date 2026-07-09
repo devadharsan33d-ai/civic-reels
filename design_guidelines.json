@@ -1,162 +1,145 @@
 {
-  "app_name": "CivicReel",
-  "personality": "6 Glass / Luxe DARK",
-  "personality_one_liner": "An immersive, cinematic, and dark-themed reporting tool where community problems are elevated through full-screen imagery and clean glass overlays.",
-  "color": {
-    "surface": "#050505",
-    "onSurface": "#F5F5F5",
-    "surfaceSecondary": "#121212",
-    "onSurfaceSecondary": "#E0E0E0",
-    "surfaceTertiary": "#1C1C1C",
-    "onSurfaceTertiary": "#CCCCCC",
-    "surfaceInverse": "#FAFAFA",
-    "onSurfaceInverse": "#050505",
-    "brand": "#064E3B",
-    "brandPrimary": "#059669",
-    "onBrandPrimary": "#FFFFFF",
-    "brandSecondary": "#34D399",
-    "onBrandSecondary": "#022C22",
-    "brandTertiary": "#A7F3D0",
-    "onBrandTertiary": "#064E3B",
-    "success": "#10B981",
-    "onSuccess": "#FFFFFF",
-    "warning": "#FBBF24",
-    "onWarning": "#451A03",
-    "error": "#EF4444",
-    "onError": "#FFFFFF",
-    "info": "#3B82F6",
-    "onInfo": "#FFFFFF",
-    "border": "#262626",
-    "borderStrong": "#404040",
-    "divider": "#1A1A1A"
-  },
+  "theme": "Dark Mode Default with Vibrant Accents & Glassmorphism",
+  "brand_name": "Civic Reels",
+  "design_context": "social_app",
   "typography": {
-    "displayFontFamily": "Fraunces",
-    "textFontFamily": "Switzer",
-    "scale": {
-      "sm": 12,
-      "base": 14,
-      "lg": 16,
-      "xl": 20,
-      "2xl": 24
+    "headings": "Outfit",
+    "body": "Manrope",
+    "rules": {
+      "H1": "text-4xl sm:text-5xl font-black tracking-tighter",
+      "H2": "text-2xl sm:text-3xl font-bold tracking-tight",
+      "H3": "text-xl sm:text-2xl font-semibold",
+      "Body": "text-base leading-relaxed",
+      "Labels": "text-xs font-bold uppercase tracking-[0.2em]"
+    },
+    "notes": "Do not use Inter for headings. Use Outfit for a modern, startup feel and Manrope for clean readability."
+  },
+  "colors": {
+    "background": {
+      "dark": "#0A0A0A",
+      "light": "#FAFAFA"
+    },
+    "surface": {
+      "dark": "#121212",
+      "light": "#FFFFFF"
+    },
+    "primary": {
+      "gradient": "bg-gradient-to-r from-violet-600 via-fuchsia-500 to-orange-500",
+      "solid": "#8B5CF6"
+    },
+    "accents": {
+      "electricity": "from-yellow-400 to-orange-500",
+      "water": "from-blue-400 to-cyan-500",
+      "road": "from-stone-500 to-neutral-700",
+      "pollution": "from-emerald-400 to-teal-500",
+      "traffic": "from-red-500 to-rose-600",
+      "corruption": "from-purple-500 to-indigo-600"
+    },
+    "glass": {
+      "dark": "bg-black/30 backdrop-blur-2xl border border-white/10",
+      "light": "bg-white/60 backdrop-blur-2xl border border-black/5"
     }
   },
-  "spacing": {
-    "rule": "Generous vertical breathing room for cinematic feel; glass surfaces require larger padding to separate from underlying imagery.",
-    "xs": 4,
-    "sm": 8,
-    "md": 12,
-    "lg": 16,
-    "xl": 24,
-    "2xl": 32,
-    "3xl": 48
+  "visual_enhancers": {
+    "glassmorphism": "Use heavily on bottom nav, top headers, right-side action buttons in Reels feed, and comment bottom sheets. Must include a 1px subtle inner border (border-white/10) to separate from the background.",
+    "shadows": "Soft, diffuse ambient shadows (shadow-[0_8px_32px_rgba(0,0,0,0.4)] in dark mode) to create depth on cards and floating buttons.",
+    "corners": "Generous border radii. Use rounded-2xl (16px) for cards/dialogs, rounded-3xl (24px) for bottom navs and large containers, and rounded-full for buttons/avatars.",
+    "depth": "Layer UI elements: Background Video/Image -> Gradient Scrim (bg-gradient-to-t from-black/80 to-transparent) -> Text -> Glassmorphism Controls."
   },
-  "radius_tokens": {
-    "sm": 6,
-    "md": 12,
-    "lg": 20,
-    "pill": 999
+  "components": {
+    "bottom_nav": "Premium pill-shaped or edge-to-edge glassmorphic bar (backdrop-blur-2xl bg-black/40 border-t border-white/10). Active states use subtle glows. Center button should be a floating gradient action button (FAB) elevated with a shadow.",
+    "reels_feed": "Full-screen vertical swipe (snap-y snap-mandatory). Right side has vertical stack of glassmorphic action buttons (like, comment, share) with lucide-react icons. Bottom has user info, location, and description over a dark gradient scrim.",
+    "category_chips": "Pill-shaped, vibrant gradient backgrounds (or dark backgrounds with gradient borders) to categorize civic issues (electricity, water, etc.). Horizontal scrollable list (no scrollbars).",
+    "inputs": "Material Design 3 style floating labels. Dark surface background with 1px border. Focus state activates a subtle primary glow and border color change.",
+    "cards": "For profile grid and search discover: sleek rectangles, no harsh borders, subtle image zoom on hover/press.",
+    "dialogs_bottom_sheets": "Use for comments and post creation. Top corners heavily rounded (rounded-t-3xl), glassmorphic background, with a small pill drag-handle at the top."
   },
-  "shadow_tier": 0,
-  "navigation": "bottom_tabs",
-  "icon_set": "Phosphor",
-  "glassmorphism": {
-    "enabled": true,
-    "do's": [
-      "Use glass for the bottom tab bar, floating right-side interaction icons on the feed, and bottom sheet handles.",
-      "Apply vertical gradient scrim (transparent to 80% surfaceInverse) at the bottom 40% of the full-screen reel to guarantee text readability.",
-      "Pair blur with translucent tinted base layered underneath (≥75% of surface in dark mode)."
+  "grids_layouts": {
+    "spacing": "Generous spacing. p-4 for standard mobile padding, p-6 for sheet content.",
+    "profile_grid": "3-column grid (grid-cols-3) with gap-1 for the user's reported problems.",
+    "alignment": "Mobile-first approach. Ensure all text and critical UI elements are within safe areas (padding at bottom for nav bar)."
+  },
+  "motion": {
+    "micro_interactions": "active:scale-95 transition-transform duration-200 for all buttons and chips.",
+    "page_transitions": "Framer Motion slide-up and fade-in for bottom sheets and new screens. Staggered entrance for list items.",
+    "loaders": "Elegant gradient skeleton loaders (animate-pulse with dark gray backgrounds) for the Discover/Search screen while images load."
+  },
+  "accessibility": {
+    "contrast": "Ensure text over images has a strong text-shadow or a dark gradient scrim behind it (bg-gradient-to-t from-black/80 via-black/40 to-transparent).",
+    "tap_targets": "Minimum 44x44px for all interactive elements (buttons, icons in the Reels feed)."
+  },
+  "image_urls": {
+    "avatars": [
+      {
+        "url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1NzZ8MHwxfHNlYXJjaHwxfHxwb3J0cmFpdCUyMHBob3RvZ3JhcGh5JTIwbW9kZXJufGVufDB8fHx8MTc4MzYxMDc4MXww&ixlib=rb-4.1.0&q=85",
+        "description": "Smiling woman in pinstriped top",
+        "category": "User Profile"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1536766768598-e09213fdcf22?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1NzZ8MHwxfHNlYXJjaHwzfHxwb3J0cmFpdCUyMHBob3RvZ3JhcGh5JTIwbW9kZXJufGVufDB8fHx8MTc4MzYxMDc4MXww&ixlib=rb-4.1.0&q=85",
+        "description": "Woman in brown headscarf",
+        "category": "User Profile"
+      }
     ],
-    "dont's": [
-      "Never blur body text regions, form fields, or entire screens.",
-      "Do not use glass effects on Android low-end fallback; use solid surfaceSecondary instead."
+    "problems": [
+      {
+        "url": "https://images.unsplash.com/photo-1599194323651-f1491c2d76ed?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODd8MHwxfHNlYXJjaHwxfHxwb3Rob2xlJTIwcm9hZCUyMHN0cmVldHxlbnwwfHx8fDE3ODM2MTA3ODF8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Road with cracks",
+        "category": "Road"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1717039044041-82399017e236?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzB8MHwxfHNlYXJjaHwzfHx0cmFmZmljJTIwamFtJTIwY2l0eXxlbnwwfHx8fDE3ODM2MTA3ODF8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Crowded street with traffic jam",
+        "category": "Traffic"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1773523014834-52361c828ff2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHw0fHxsaXR0ZXIlMjBwb2xsdXRpb24lMjBzdHJlZXR8ZW58MHx8fHwxNzgzNjEwNzgxfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Plastic cup litter on street",
+        "category": "Pollution"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1560782205-4dd83ceb0270?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODF8MHwxfHNlYXJjaHwyfHx3YXRlciUyMGxlYWslMjBzdHJlZXR8ZW58MHx8fHwxNzgzNjEwNzk5fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Puddle/water leak on road",
+        "category": "Water"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1611063158871-7dd3ed4a2ac8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODl8MHwxfHNlYXJjaHwxfHxncmFmZml0aSUyMHZhbmRhbGlzbSUyMHdhbGx8ZW58MHx8fHwxNzgzNjEwODAwfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Graffiti on wall",
+        "category": "Other"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1726409268030-0deae6db2140?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzZ8MHwxfHNlYXJjaHwzfHxicm9rZW4lMjBzdHJlZXQlMjBsaWdodHxlbnwwfHx8fDE3ODM2MTA3OTl8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Broken street light",
+        "category": "Safety"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1762805543693-5aaa00fadc28?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHwyfHxnYXJiYWdlJTIwZHVtcCUyMHN0cmVldHxlbnwwfHx8fDE3ODM2MTA3OTl8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Garbage dump on street",
+        "category": "Sanitation"
+      }
     ]
   },
-  "platform_libraries": {
-    "glass": {
-      "ios": "expo-glass-effect",
-      "android": "expo-blur",
-      "low_end_android_fallback": "solid surfaceSecondary"
-    },
-    "image": "expo-image",
-    "blur": "expo-blur",
-    "bottom_sheet": "@gorhom/bottom-sheet",
-    "animation": "react-native-reanimated",
-    "gesture": "react-native-gesture-handler"
-  },
-  "screens": [
-    {
-      "name": "HomeFeed",
-      "purpose": "A vertical, full-screen immersive scrolling feed for showcasing civic problems.",
-      "states": {
-        "loading": "Centered brand-tinted spinner on deep dark surface.",
-        "empty": "Stylized camera illustration indicating no reports yet.",
-        "error": "Readable text with a retry button over a subtle glass card."
-      },
-      "layout": "Full-screen vertical FlatList (paging enabled). Video/Image occupies 100% height and width. Bottom 40% has a dark gradient scrim (transparent -> #050505 at 80% opacity) layered below the text (Caption, Category, Profile). Right side holds a vertical stack of glass-backed icon buttons (Like, Comment, Share). Tab bar sits at the bottom using glass effect."
-    },
-    {
-      "name": "Search",
-      "purpose": "Find specific problems by category or discover users.",
-      "states": {
-        "loading": "Skeleton rows reflecting either user profiles or feed thumbnails.",
-        "empty": "No results found illustration with refined empty text.",
-        "error": "Error message with 'Try again' CTA."
-      },
-      "layout": "Top sticky search bar with glass effect. Immediately below, a horizontal scrollable segmented control (Users | Problems). Below that, a masonry or 2-column grid for problem images. When 'Problems' is active, show category chips (Electricity, Wastage, Road, etc.) horizontally below the search bar to filter results."
-    },
-    {
-      "name": "CreatePost",
-      "purpose": "Capture a problem and describe it before posting.",
-      "states": {
-        "loading": "Uploading overlay with progress spinner.",
-        "empty": "N/A",
-        "error": "Failed to post alert or retry snackbar."
-      },
-      "layout": "Step 1: Full-screen camera view or gallery grid. Step 2: Form screen with the selected image as a small thumbnail at the top. Below, single-column form: Description (multiline), Category selector (chips), Tag users (input). Submit button sticky at the bottom."
-    },
-    {
-      "name": "Profile",
-      "purpose": "Showcase user's reported civic issues and personal details.",
-      "states": {
-        "loading": "Skeleton layout for cover, avatar, and grid.",
-        "empty": "Illustration indicating 'No posts yet'.",
-        "error": "Standard retry block."
-      },
-      "layout": "Top half: Cover banner (real photo or brand gradient) with an overlapping avatar. Name, Username, Location, and Slogan in a centered, clean typography layout. Bottom half: 3-column grid of reported problems (no gaps or 1px divider). Sticky header with glass effect when scrolling down."
-    }
-  ],
-  "images": {
-    "feed_pothole_problem": {
-      "url": "https://images.pexels.com/photos/31172239/pexels-photo-31172239.jpeg",
-      "alt": "Urban street puddle reflecting orange building with broken road."
-    },
-    "feed_wastage_problem": {
-      "url": "https://images.pexels.com/photos/6777374/pexels-photo-6777374.jpeg",
-      "alt": "Trolley with trash in dirty alley with pile of rubbish."
-    },
-    "profile_avatar_1": {
-      "url": "https://images.pexels.com/photos/20630308/pexels-photo-20630308.jpeg",
-      "alt": "Close-up portrait of a woman."
-    }
-  },
   "instructions_to_main_agent": [
-    "Strictly adhere to the '6 Glass / Luxe DARK' personality. The app should feel immersive and cinematic.",
-    "Implement the full-screen vertical swipe feed mimicking Reels: The image must fill the safe area. Add a strict vertical gradient scrim (transparent to 80% surfaceInverse) at the bottom to ensure text readability.",
-    "The right-side interaction icons (Like, Comment, Share) must be stacked vertically and placed on glass-effect circular containers.",
-    "Navigation bottom tab bar MUST use a frosted glass effect with translucency, allowing the full-screen feed images to blur underneath.",
-    "For CreatePost, ensure the camera/gallery interaction is smooth and the form layout is single-column with a sticky submit button.",
-    "Images for feed posts MUST NOT have generic placeholders. Use the provided real-world examples of civic issues.",
-    "Ensure 'swiping up' functionality on the feed works flawlessly, ideally using a FlatList with `pagingEnabled={true}`.",
-    "No blue or purple colors are permitted anywhere. Stick strictly to the emerald/dark palette.",
-    "Ensure the Google Social Login button on the auth screen follows the brand design, avoiding generic default web-like buttons."
+    "Rename the app to 'Civic Reels' across the entire codebase.",
+    "Build out the application using React (.js/.jsx files) and Tailwind CSS.",
+    "Use lucide-react for all modern icons.",
+    "Make Dark Theme the default. Use deep blacks (#0A0A0A) as the base background.",
+    "Implement Material Design 3 style floating-label inputs for the onboarding and post creation forms.",
+    "Implement a vertical full-screen swipe feed (snap-y, snap-mandatory) like Instagram Reels/TikTok. Overlap the video/image with glassmorphic right-side action buttons and a bottom text area over a dark gradient scrim.",
+    "Create a modern Text Logo for 'Civic Reels' using the Outfit font with a gradient clip (bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-orange-500).",
+    "Replace standard borders with glassmorphism (backdrop-blur-xl and border-white/10) for menus, bottoms sheets, and navs.",
+    "The bottom navigation bar should have an elevated center FAB (Floating Action Button) with a vibrant gradient background for creating new posts."
   ],
-  "haptics": {
-    "events": {
-      "swipe_next_video": "light",
-      "like_button_press": "medium",
-      "tab_press": "light",
-      "submit_post": "success"
-    }
-  }
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. Avoid the 'AI slop' aesthetic by making creative, distinctive frontend designs.",
+    "Do not center-align the app container (.App { text-align: center; } is banned). Left-align dense content for better reading.",
+    "Do not use universal transitions (transition: all). Target specific properties like transform or opacity.",
+    "Use glassmorphism effects with backdrop filters (12-24px blur) and 1px semi-transparent borders to separate from backgrounds.",
+    "Create depth with z-index hierarchy (shadows and layered gradients).",
+    "Incorporate micro-animations (hover/active states, active:scale-95) for all interactive elements.",
+    "Always use sonner for toast notifications.",
+    "Include data-testid attributes on all interactive and key informational elements (e.g., data-testid='submit-button').",
+    "Do NOT use complete transparent backgrounds where content scrolls underneath. Always use a blur or solid color.",
+    "Since the project uses .js/.jsx, ensure all Shadcn components or custom components are written in standard JS, not TypeScript."
+  ]
 }
