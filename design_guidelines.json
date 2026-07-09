@@ -1,0 +1,162 @@
+{
+  "app_name": "CivicReel",
+  "personality": "6 Glass / Luxe DARK",
+  "personality_one_liner": "An immersive, cinematic, and dark-themed reporting tool where community problems are elevated through full-screen imagery and clean glass overlays.",
+  "color": {
+    "surface": "#050505",
+    "onSurface": "#F5F5F5",
+    "surfaceSecondary": "#121212",
+    "onSurfaceSecondary": "#E0E0E0",
+    "surfaceTertiary": "#1C1C1C",
+    "onSurfaceTertiary": "#CCCCCC",
+    "surfaceInverse": "#FAFAFA",
+    "onSurfaceInverse": "#050505",
+    "brand": "#064E3B",
+    "brandPrimary": "#059669",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#34D399",
+    "onBrandSecondary": "#022C22",
+    "brandTertiary": "#A7F3D0",
+    "onBrandTertiary": "#064E3B",
+    "success": "#10B981",
+    "onSuccess": "#FFFFFF",
+    "warning": "#FBBF24",
+    "onWarning": "#451A03",
+    "error": "#EF4444",
+    "onError": "#FFFFFF",
+    "info": "#3B82F6",
+    "onInfo": "#FFFFFF",
+    "border": "#262626",
+    "borderStrong": "#404040",
+    "divider": "#1A1A1A"
+  },
+  "typography": {
+    "displayFontFamily": "Fraunces",
+    "textFontFamily": "Switzer",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Generous vertical breathing room for cinematic feel; glass surfaces require larger padding to separate from underlying imagery.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": 0,
+  "navigation": "bottom_tabs",
+  "icon_set": "Phosphor",
+  "glassmorphism": {
+    "enabled": true,
+    "do's": [
+      "Use glass for the bottom tab bar, floating right-side interaction icons on the feed, and bottom sheet handles.",
+      "Apply vertical gradient scrim (transparent to 80% surfaceInverse) at the bottom 40% of the full-screen reel to guarantee text readability.",
+      "Pair blur with translucent tinted base layered underneath (≥75% of surface in dark mode)."
+    ],
+    "dont's": [
+      "Never blur body text regions, form fields, or entire screens.",
+      "Do not use glass effects on Android low-end fallback; use solid surfaceSecondary instead."
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "HomeFeed",
+      "purpose": "A vertical, full-screen immersive scrolling feed for showcasing civic problems.",
+      "states": {
+        "loading": "Centered brand-tinted spinner on deep dark surface.",
+        "empty": "Stylized camera illustration indicating no reports yet.",
+        "error": "Readable text with a retry button over a subtle glass card."
+      },
+      "layout": "Full-screen vertical FlatList (paging enabled). Video/Image occupies 100% height and width. Bottom 40% has a dark gradient scrim (transparent -> #050505 at 80% opacity) layered below the text (Caption, Category, Profile). Right side holds a vertical stack of glass-backed icon buttons (Like, Comment, Share). Tab bar sits at the bottom using glass effect."
+    },
+    {
+      "name": "Search",
+      "purpose": "Find specific problems by category or discover users.",
+      "states": {
+        "loading": "Skeleton rows reflecting either user profiles or feed thumbnails.",
+        "empty": "No results found illustration with refined empty text.",
+        "error": "Error message with 'Try again' CTA."
+      },
+      "layout": "Top sticky search bar with glass effect. Immediately below, a horizontal scrollable segmented control (Users | Problems). Below that, a masonry or 2-column grid for problem images. When 'Problems' is active, show category chips (Electricity, Wastage, Road, etc.) horizontally below the search bar to filter results."
+    },
+    {
+      "name": "CreatePost",
+      "purpose": "Capture a problem and describe it before posting.",
+      "states": {
+        "loading": "Uploading overlay with progress spinner.",
+        "empty": "N/A",
+        "error": "Failed to post alert or retry snackbar."
+      },
+      "layout": "Step 1: Full-screen camera view or gallery grid. Step 2: Form screen with the selected image as a small thumbnail at the top. Below, single-column form: Description (multiline), Category selector (chips), Tag users (input). Submit button sticky at the bottom."
+    },
+    {
+      "name": "Profile",
+      "purpose": "Showcase user's reported civic issues and personal details.",
+      "states": {
+        "loading": "Skeleton layout for cover, avatar, and grid.",
+        "empty": "Illustration indicating 'No posts yet'.",
+        "error": "Standard retry block."
+      },
+      "layout": "Top half: Cover banner (real photo or brand gradient) with an overlapping avatar. Name, Username, Location, and Slogan in a centered, clean typography layout. Bottom half: 3-column grid of reported problems (no gaps or 1px divider). Sticky header with glass effect when scrolling down."
+    }
+  ],
+  "images": {
+    "feed_pothole_problem": {
+      "url": "https://images.pexels.com/photos/31172239/pexels-photo-31172239.jpeg",
+      "alt": "Urban street puddle reflecting orange building with broken road."
+    },
+    "feed_wastage_problem": {
+      "url": "https://images.pexels.com/photos/6777374/pexels-photo-6777374.jpeg",
+      "alt": "Trolley with trash in dirty alley with pile of rubbish."
+    },
+    "profile_avatar_1": {
+      "url": "https://images.pexels.com/photos/20630308/pexels-photo-20630308.jpeg",
+      "alt": "Close-up portrait of a woman."
+    }
+  },
+  "instructions_to_main_agent": [
+    "Strictly adhere to the '6 Glass / Luxe DARK' personality. The app should feel immersive and cinematic.",
+    "Implement the full-screen vertical swipe feed mimicking Reels: The image must fill the safe area. Add a strict vertical gradient scrim (transparent to 80% surfaceInverse) at the bottom to ensure text readability.",
+    "The right-side interaction icons (Like, Comment, Share) must be stacked vertically and placed on glass-effect circular containers.",
+    "Navigation bottom tab bar MUST use a frosted glass effect with translucency, allowing the full-screen feed images to blur underneath.",
+    "For CreatePost, ensure the camera/gallery interaction is smooth and the form layout is single-column with a sticky submit button.",
+    "Images for feed posts MUST NOT have generic placeholders. Use the provided real-world examples of civic issues.",
+    "Ensure 'swiping up' functionality on the feed works flawlessly, ideally using a FlatList with `pagingEnabled={true}`.",
+    "No blue or purple colors are permitted anywhere. Stick strictly to the emerald/dark palette.",
+    "Ensure the Google Social Login button on the auth screen follows the brand design, avoiding generic default web-like buttons."
+  ],
+  "haptics": {
+    "events": {
+      "swipe_next_video": "light",
+      "like_button_press": "medium",
+      "tab_press": "light",
+      "submit_post": "success"
+    }
+  }
+}
