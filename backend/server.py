@@ -320,6 +320,23 @@ async def get_post(post_id: str, authorization: Optional[str] = Header(None)):
         raise HTTPException(status_code=404, detail="Post not found")
     return await enrich_post(post, user["user_id"])
 
+@api_router.delete("/posts/{post_id}")
+async def delete_post(post_id: str, authorization: Optional[str] = Header(None)):
+    user = await get_current_user(authorization)
+
+    post = await db.posts.find_one({"post_id": post_id})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    if post["author_id"] != user["user_id"]:
+        raise HTTPException(status_code=403, detail="You can only delete your own posts")
+
+    await db.posts.delete_one({"post_id": post_id})
+    await db.likes.delete_many({"post_id": post_id})
+    await db.comments.delete_many({"post_id": post_id})
+
+    return {"message": "Post deleted successfully"}
+
 @api_router.post("/posts/{post_id}/like")
 async def toggle_like(post_id: str, authorization: Optional[str] = Header(None)):
     user = await get_current_user(authorization)
